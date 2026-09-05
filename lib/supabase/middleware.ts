@@ -1,13 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PROTECTED_PATHS = ["/dashboard", "/intake"];
+
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
 /**
- * Refreshes the Supabase auth session on every request and keeps the
- * browser/server cookies in sync. Called from the root `middleware.ts`.
- *
- * This does NOT enforce authentication or redirect unauthenticated users —
- * that route-protection logic belongs to whoever implements auth on top of
- * this foundation.
+ * Refreshes the Supabase auth session on every request, keeps the
+ * browser/server cookies in sync, and redirects to /login when a request
+ * without a valid session hits a protected path. Called from the root
+ * `proxy.ts`.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -36,7 +42,15 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: avoid writing logic between createServerClient and
   // getUser(). A simple mistake could make it very hard to debug issues
   // with users being randomly logged out.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user && isProtectedPath(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
