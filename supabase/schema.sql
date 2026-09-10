@@ -258,3 +258,12 @@ create policy "intake_data_delete_own" on public.intake_data
         and p.user_id = auth.uid()
     )
   );
+
+-- =============================================================================
+-- MIGRAÇÃO: cargo/função dos sócios (formulário da etapa Perfil)
+-- =============================================================================
+-- Nullable de propósito: linhas de partners que já existiam antes desta
+-- migração não têm cargo preenchido. A obrigatoriedade desse campo é
+-- validada em app/intake/perfil-actions.ts / lib/intake/schema-perfil.ts.
+
+alter table public.partners add column if not exists cargo text;

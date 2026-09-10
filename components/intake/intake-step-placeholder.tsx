@@ -1,15 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useAutosave, type AutosaveStatus } from "@/lib/hooks/useAutosave";
+import { useAutosave } from "@/lib/hooks/useAutosave";
+import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import type { FaseIntake } from "@/lib/intake/fases";
-
-const STATUS_LABEL: Record<AutosaveStatus, string> = {
-  idle: "",
-  salvando: "Salvando...",
-  salvo: "Todas as alterações salvas",
-  erro: "Erro ao salvar. Ajuste algo para tentar de novo.",
-};
 
 /**
  * Placeholder do conteúdo de cada etapa. O campo de texto abaixo é só para
@@ -47,9 +41,7 @@ export function IntakeStepPlaceholder({
         className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
       />
 
-      <p className="text-sm text-zinc-500" role="status">
-        {STATUS_LABEL[status]}
-      </p>
+      <AutosaveStatusIndicator status={status} />
     </div>
   );
 }
