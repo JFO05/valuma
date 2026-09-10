@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/logout-button";
@@ -25,6 +26,14 @@ export default async function DashboardPage() {
         Bem-vindo{profile?.nome_completo ? `, ${profile.nome_completo}` : ""}!
       </h1>
       <p className="text-zinc-600 dark:text-zinc-400">{user.email}</p>
+
+      <Link
+        href="/intake"
+        className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+      >
+        Novo Valuation
+      </Link>
+
       <LogoutButton />
     </div>
   );
