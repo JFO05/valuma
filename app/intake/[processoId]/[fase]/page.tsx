@@ -2,9 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FASE_LABELS, isFaseIntake, type FaseIntake } from "@/lib/intake/fases";
 import { IntakeStepper } from "@/components/intake/intake-stepper";
-import { IntakeStepPlaceholder } from "@/components/intake/intake-step-placeholder";
 import { PerfilForm } from "@/components/intake/perfil-form";
 import { FinanceiroForm } from "@/components/intake/financeiro-form";
+import { OperacaoForm } from "@/components/intake/operacao-form";
+import { MercadoForm } from "@/components/intake/mercado-form";
+import { DocumentosForm } from "@/components/intake/documentos-form";
 
 export default async function IntakeFasePage({
   params,
@@ -71,12 +73,16 @@ export default async function IntakeFasePage({
         <FinanceiroForm processoId={processoId} dadosIniciais={dadosAtual} />
       )}
 
-      {fase !== "perfil" && fase !== "financeiro" && (
-        <IntakeStepPlaceholder
-          processoId={processoId}
-          fase={fase}
-          dadosIniciais={dadosAtual}
-        />
+      {fase === "operacao" && (
+        <OperacaoForm processoId={processoId} dadosIniciais={dadosAtual} />
+      )}
+
+      {fase === "mercado" && (
+        <MercadoForm processoId={processoId} dadosIniciais={dadosAtual} />
+      )}
+
+      {fase === "documentos" && (
+        <DocumentosForm processoId={processoId} dadosIniciais={dadosAtual} />
       )}
     </div>
   );

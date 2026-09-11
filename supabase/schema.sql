@@ -267,3 +267,93 @@ create policy "intake_data_delete_own" on public.intake_data
 -- validada em app/intake/perfil-actions.ts / lib/intake/schema-perfil.ts.
 
 alter table public.partners add column if not exists cargo text;
+
+-- =============================================================================
+-- MIGRAÇÃO: Storage para a etapa "Documentos"
+-- =============================================================================
+-- Bucket privado. Caminho de cada objeto: {processo_id}/{uuid}-{nome_arquivo}
+-- — o primeiro segmento do path é o que a policy usa para achar o processo e
+-- confirmar que ele pertence a quem está fazendo a requisição.
+--
+-- file_size_limit é em bytes (20 MB aqui). Se mudar, atualize também
+-- TAMANHO_MAXIMO_BYTES em lib/intake/schema-documentos.ts.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'documentos-intake',
+  'documentos-intake',
+  false,
+  20971520,
+  array[
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'image/jpeg',
+    'image/png'
+  ]
+)
+on conflict (id) do update set
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- storage.objects já vem com RLS habilitada por padrão em todo projeto
+-- Supabase; só precisamos das policies. storage.foldername(name) quebra o
+-- path em segmentos — o primeiro é sempre o processo_id nesse bucket.
+
+create policy "documentos_intake_select_own"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'documentos-intake'
+  and exists (
+    select 1 from public.processos p
+    where p.id::text = (storage.foldername(name))[1]
+      and p.user_id = auth.uid()
+  )
+);
+
+create policy "documentos_intake_insert_own"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'documentos-intake'
+  and exists (
+    select 1 from public.processos p
+    where p.id::text = (storage.foldername(name))[1]
+      and p.user_id = auth.uid()
+  )
+);
+
+create policy "documentos_intake_update_own"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'documentos-intake'
+  and exists (
+    select 1 from public.processos p
+    where p.id::text = (storage.foldername(name))[1]
+      and p.user_id = auth.uid()
+  )
+)
+with check (
+  bucket_id = 'documentos-intake'
+  and exists (
+    select 1 from public.processos p
+    where p.id::text = (storage.foldername(name))[1]
+      and p.user_id = auth.uid()
+  )
+);
+
+create policy "documentos_intake_delete_own"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'documentos-intake'
+  and exists (
+    select 1 from public.processos p
+    where p.id::text = (storage.foldername(name))[1]
+      and p.user_id = auth.uid()
+  )
+);
