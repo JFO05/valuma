@@ -55,7 +55,7 @@ export const PESO_VALUATION_EBITDA = 0.5;
 export const PESO_VALUATION_DCF = 0.3;
 export const PESO_VALUATION_PATRIMONIAL = 0.2;
 
-export interface ResultadoValuation {
+export interface ResultadoCalculoValuation {
   valuationEbitda: number | null;
   valuationDcf: number | null;
   valuationPatrimonial: number;
@@ -64,7 +64,7 @@ export interface ResultadoValuation {
   ebitdaBaseUtilizado: number | null;
 }
 
-export function calcularValuation(dados: DadosProcesso): ResultadoValuation {
+export function calcularValuation(dados: DadosProcesso): ResultadoCalculoValuation {
   const anosComDados = anosDreComDados(dados.financeiro.dre);
   const anoBase = anosComDados.at(-1) ?? null;
   const ebitdaBase = anoBase?.ebitda ?? null;

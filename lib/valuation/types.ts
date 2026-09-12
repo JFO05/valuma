@@ -32,3 +32,31 @@ export function anosDreComDados(dre: DreAnoFormValues[]): DreAnoFormValues[] {
     .filter((ano) => ano.receitaBruta > 0 || ano.ebitda !== 0)
     .sort((a, b) => a.ano - b.ano);
 }
+
+export interface AnaliseIA {
+  pontosFortes: string[];
+  riscos: string[];
+  recomendacoes: string[];
+}
+
+/**
+ * Formato final e combinado do resultado de um processo — valuation + score
+ * + análise de IA — exatamente como vai ser retornado por `public.resultados`
+ * quando essa tabela existir. Não confundir com `ResultadoCalculoValuation`
+ * (em ./calcular.ts), que é só a saída bruta de `calcularValuation` (sem
+ * scores nem IA); esse tipo aqui é o contrato "de fora para dentro" que a
+ * tela de resultado (app/processos/[processoId]/resultado/page.tsx) espera
+ * — hoje vem de lib/valuation/mock.ts, depois vai vir de uma query real.
+ */
+export interface ResultadoValuation {
+  valuationFinal: number;
+  valuationEbitda: number;
+  valuationDcf: number;
+  valuationPatrimonial: number;
+  scoreTotal: number;
+  scoreFinanceiro: number;
+  scoreOperacao: number;
+  scoreMercado: number;
+  scoreJuridico: number;
+  analiseIA: AnaliseIA;
+}
