@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { mockResultadoValuation } from "@/lib/valuation/mock";
+import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import type { ResultadoValuation } from "@/lib/valuation/types";
 import { ValuationDestaque } from "@/components/resultado/valuation-destaque";
 import { ValuationBreakdown } from "@/components/resultado/valuation-breakdown";
@@ -12,10 +12,8 @@ import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
 
 export default async function ResultadoPage({
   params,
-  searchParams,
 }: PageProps<"/processos/[processoId]/resultado">) {
   const { processoId } = await params;
-  const sp = await searchParams;
 
   const supabase = await createClient();
 
@@ -40,26 +38,19 @@ export default async function ResultadoPage({
     notFound();
   }
 
-  // TODO(integrantes de valuation/IA): substituir todo este bloco por uma
-  // busca real em public.resultados quando a tabela e o cálculo existirem,
-  // por exemplo:
-  //
-  //   const { data: resultado } = await supabase
-  //     .from("resultados")
-  //     .select("*")
-  //     .eq("processo_id", processoId)
-  //     .maybeSingle();
-  //
-  // e usar `resultado` (tipado como ResultadoValuation, de
-  // lib/valuation/types.ts) no lugar de `resultado` abaixo. O restante da
-  // página (JSX) não muda — só a origem do dado.
-  //
-  // Por enquanto, simulamos "resultado já gerado" via ?mock=1 na URL
-  // (setado pelo botão "Gerar Resultado" em ResultadoVazio) e usamos o mock
-  // fixo de lib/valuation/mock.ts como se fosse o retorno real.
-  const resultadoJaGerado = sp.mock === "1";
-  const resultado: ResultadoValuation | null = resultadoJaGerado
-    ? mockResultadoValuation
+  // Busca real em public.resultados — colunas snake_case, convertidas para
+  // o formato ResultadoValuation (camelCase) pelo mesmo mapper que a rota
+  // de geração usa (lib/valuation/resultados.ts), então os dois caminhos
+  // (gerar agora vs. reabrir uma página já gerada) produzem o mesmo shape.
+  // RLS garante que só vem linha se o processo for do usuário logado.
+  const { data: resultadoRow } = await supabase
+    .from("resultados")
+    .select("*")
+    .eq("processo_id", processoId)
+    .maybeSingle();
+
+  const resultado: ResultadoValuation | null = resultadoRow
+    ? mapRowParaResultadoValuation(resultadoRow)
     : null;
 
   return (
@@ -76,7 +67,10 @@ export default async function ResultadoPage({
       </div>
 
       {!resultado ? (
-        <ResultadoVazio nomeEmpresa={processo.nome_empresa} />
+        <ResultadoVazio
+          processoId={processoId}
+          nomeEmpresa={processo.nome_empresa}
+        />
       ) : (
         <>
           <ValuationDestaque valor={resultado.valuationFinal} />
