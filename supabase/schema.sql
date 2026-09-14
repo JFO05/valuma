@@ -357,3 +357,81 @@ using (
       and p.user_id = auth.uid()
   )
 );
+
+-- =============================================================================
+-- MIGRAÇÃO: tabela de resultados (valuation + score + análise de IA)
+-- =============================================================================
+-- Um resultado por processo (unique em processo_id) — cada "Gerar Resultado"
+-- é um upsert que substitui o anterior, não um histórico de versões.
+
+create table public.resultados (
+  id uuid primary key default gen_random_uuid(),
+  processo_id uuid not null references public.processos (id) on delete cascade,
+  valuation_final numeric not null,
+  valuation_ebitda numeric not null,
+  valuation_dcf numeric not null,
+  valuation_patrimonial numeric not null,
+  score_total numeric not null,
+  score_financeiro numeric not null,
+  score_operacao numeric not null,
+  score_mercado numeric not null,
+  score_juridico numeric not null,
+  analise_ia jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  constraint resultados_processo_id_key unique (processo_id)
+);
+
+comment on table public.resultados is 'Resultado consolidado (valuation + score + análise de IA) de um processo — um por processo_id, upsert a cada geração.';
+comment on column public.resultados.analise_ia is 'jsonb no formato {pontosFortes: string[], riscos: string[], recomendacoes: string[]}.';
+
+alter table public.resultados enable row level security;
+
+-- Mesmo padrão de partners/intake_data: acesso liberado só se o processo
+-- pai pertence ao usuário logado.
+
+create policy "resultados_select_own" on public.resultados
+  for select
+  using (
+    exists (
+      select 1 from public.processos p
+      where p.id = resultados.processo_id
+        and p.user_id = auth.uid()
+    )
+  );
+
+create policy "resultados_insert_own" on public.resultados
+  for insert
+  with check (
+    exists (
+      select 1 from public.processos p
+      where p.id = resultados.processo_id
+        and p.user_id = auth.uid()
+    )
+  );
+
+create policy "resultados_update_own" on public.resultados
+  for update
+  using (
+    exists (
+      select 1 from public.processos p
+      where p.id = resultados.processo_id
+        and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.processos p
+      where p.id = resultados.processo_id
+        and p.user_id = auth.uid()
+    )
+  );
+
+create policy "resultados_delete_own" on public.resultados
+  for delete
+  using (
+    exists (
+      select 1 from public.processos p
+      where p.id = resultados.processo_id
+        and p.user_id = auth.uid()
+    )
+  );
