@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createActionClient } from "@/lib/supabase/action-client";
 import { isFaseIntake, type FaseIntake } from "@/lib/intake/fases";
 
 type SaveIntakeDataResult =
@@ -26,7 +26,11 @@ export async function saveIntakeData(
     return { success: false, error: "Fase inválida." };
   }
 
-  const supabase = await createClient();
+  // createActionClient (não createClient): esta action roda a cada poucos
+  // segundos via useAutosave — usar o cliente que regrava cookies aqui
+  // causava um loop infinito de re-render. Ver comentário em
+  // lib/supabase/action-client.ts.
+  const supabase = await createActionClient();
 
   const {
     data: { user },

@@ -65,6 +65,15 @@ export function useAutosave(
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const isFirstRender = useRef(true);
 
+  // Dependência por CONTEÚDO (string), não por referência do objeto: watch()
+  // devolve um objeto novo a cada render — inclusive nos renders causados
+  // pelo próprio setStatus abaixo. Usar `dados` direto no array de
+  // dependências reagendava um novo save toda vez que o status mudava
+  // (salvando -> re-render -> "dados" novo -> agenda de novo -> ...),
+  // criando um loop infinito que nunca parava de salvar. Com a versão
+  // serializada, o efeito só dispara quando o conteúdo realmente muda.
+  const dadosSerializados = JSON.stringify(dados);
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -78,7 +87,8 @@ export function useAutosave(
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [dados, processoId, fase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dadosSerializados, processoId, fase]);
 
   return { status };
 }

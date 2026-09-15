@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createActionClient } from "@/lib/supabase/action-client";
 import type { SocioFormValues } from "@/lib/intake/schema-perfil";
 
 type SyncPartnersResult = { success: true } | { success: false; error: string };
@@ -19,7 +19,9 @@ export async function syncPartners(
   processoId: string,
   socios: SocioFormValues[],
 ): Promise<SyncPartnersResult> {
-  const supabase = await createClient();
+  // createActionClient (não createClient) pelo mesmo motivo de
+  // app/intake/actions.ts::saveIntakeData — ver lib/supabase/action-client.ts.
+  const supabase = await createActionClient();
 
   const {
     data: { user },

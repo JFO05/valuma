@@ -65,6 +65,14 @@ export function DocumentosForm({
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
 
+    // Snapshot ANTES de qualquer `await`: o <input> reseta `value = ""` logo
+    // depois de chamar esta função (no handler onChange, para permitir
+    // selecionar o mesmo arquivo de novo), e o Chromium limpa a MESMA
+    // FileList em memória quando isso acontece — se ainda estivéssemos
+    // iterando `fileList` depois do primeiro `await` abaixo, ela já teria
+    // sido esvaziada e o upload nunca rodaria (sem erro nenhum, silencioso).
+    const files = Array.from(fileList);
+
     const supabase = createClient();
     const {
       data: { session },
@@ -78,7 +86,7 @@ export function DocumentosForm({
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-    for (const file of Array.from(fileList)) {
+    for (const file of files) {
       const erroValidacao = validarArquivo(file);
       const uploadId = crypto.randomUUID();
 
