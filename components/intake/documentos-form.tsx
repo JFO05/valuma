@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { saveIntakeData } from "@/app/intake/actions";
 import { uploadDocumento } from "@/lib/intake/upload-documento";
+import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { DocumentoListItem } from "@/components/intake/documento-list-item";
 import {
@@ -37,6 +38,15 @@ export function DocumentosForm({
   );
   const arquivosRef = useRef(arquivos);
   arquivosRef.current = arquivos;
+
+  // Corrige o usuário voltar pra esta página pelo botão Voltar/Avançar do
+  // navegador com uma lista desatualizada em cache (ver
+  // lib/hooks/useFreshDadosIniciais.ts).
+  useFreshDadosIniciais(processoId, "documentos", (dados) => {
+    const frescos = parseDocumentosData(dados).arquivos;
+    setArquivos(frescos);
+    arquivosRef.current = frescos;
+  });
 
   const [uploads, setUploads] = useState<UploadEmAndamento[]>([]);
   const [removendoPath, setRemovendoPath] = useState<string | null>(null);

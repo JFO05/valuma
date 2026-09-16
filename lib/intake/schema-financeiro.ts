@@ -95,13 +95,14 @@ export const financeiroDefaultValues: FinanceiroFormValues = {
 };
 
 /**
- * Mesma lógica de parsePerfilData: funde com os defaults e valida, caindo
- * nos defaults se o jsonb salvo estiver num formato inesperado.
+ * Funde o jsonb salvo com os defaults, sem validar contra financeiroSchema —
+ * ver o comentário equivalente em schema-perfil.ts::parsePerfilData. Um
+ * `safeParse` aqui descartaria TODO o progresso parcial (ex: só o DRE de um
+ * ano preenchido) sempre que qualquer campo obrigatório de outro bloco
+ * ainda estivesse vazio.
  */
 export function parseFinanceiroData(
   dados: Record<string, unknown>,
 ): FinanceiroFormValues {
-  const merged = { ...financeiroDefaultValues, ...dados };
-  const result = financeiroSchema.safeParse(merged);
-  return result.success ? result.data : financeiroDefaultValues;
+  return { ...financeiroDefaultValues, ...dados } as FinanceiroFormValues;
 }

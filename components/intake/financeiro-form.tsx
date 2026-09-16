@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { DreFieldset } from "@/components/intake/dre-fieldset";
 import { DividasFieldset } from "@/components/intake/dividas-fieldset";
@@ -27,11 +28,19 @@ export function FinanceiroForm({
     register,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FinanceiroFormValues>({
     resolver: zodResolver(financeiroSchema),
     defaultValues: parseFinanceiroData(dadosIniciais),
   });
+
+  // Corrige o usuário voltar pra esta página pelo botão Voltar/Avançar do
+  // navegador com uma versão desatualizada em cache (ver
+  // lib/hooks/useFreshDadosIniciais.ts).
+  useFreshDadosIniciais(processoId, "financeiro", (dados) =>
+    reset(parseFinanceiroData(dados)),
+  );
 
   const dados = watch();
   const { status } = useAutosave(processoId, "financeiro", dados);

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { SociosFieldset } from "@/components/intake/socios-fieldset";
 import { syncPartners } from "@/app/intake/perfil-actions";
@@ -30,11 +31,19 @@ export function PerfilForm({
     register,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<PerfilFormValues>({
     resolver: zodResolver(perfilSchema),
     defaultValues: parsePerfilData(dadosIniciais),
   });
+
+  // Corrige o caso do usuário voltar pra esta página pelo botão
+  // Voltar/Avançar do navegador com uma versão desatualizada em cache (ver
+  // comentário em lib/hooks/useFreshDadosIniciais.ts).
+  useFreshDadosIniciais(processoId, "perfil", (dados) =>
+    reset(parsePerfilData(dados)),
+  );
 
   // watch() sem argumentos: objeto novo a cada mudança de campo, é o
   // gatilho que useAutosave espera (ver lib/hooks/useAutosave.ts).

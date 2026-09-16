@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { EquipeCargosFieldset } from "@/components/intake/equipe-cargos-fieldset";
 import { ClientesPrincipaisFieldset } from "@/components/intake/clientes-principais-fieldset";
@@ -27,11 +28,16 @@ export function OperacaoForm({
     register,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<OperacaoFormValues>({
     resolver: zodResolver(operacaoSchema),
     defaultValues: parseOperacaoData(dadosIniciais),
   });
+
+  useFreshDadosIniciais(processoId, "operacao", (dados) =>
+    reset(parseOperacaoData(dados)),
+  );
 
   const dados = watch();
   const { status } = useAutosave(processoId, "operacao", dados);

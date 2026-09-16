@@ -76,10 +76,12 @@ export const fornecedorVazio: FornecedorFormValues = {
   nivelDependencia: "media",
 };
 
+/**
+ * Não valida contra operacaoSchema de propósito — ver o comentário
+ * equivalente em schema-perfil.ts::parsePerfilData.
+ */
 export function parseOperacaoData(
   dados: Record<string, unknown>,
 ): OperacaoFormValues {
-  const merged = { ...operacaoDefaultValues, ...dados };
-  const result = operacaoSchema.safeParse(merged);
-  return result.success ? result.data : operacaoDefaultValues;
+  return { ...operacaoDefaultValues, ...dados } as OperacaoFormValues;
 }

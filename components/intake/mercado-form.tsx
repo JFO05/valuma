@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { ConcorrentesFieldset } from "@/components/intake/concorrentes-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
@@ -26,11 +27,16 @@ export function MercadoForm({
     register,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<MercadoFormValues>({
     resolver: zodResolver(mercadoSchema),
     defaultValues: parseMercadoData(dadosIniciais),
   });
+
+  useFreshDadosIniciais(processoId, "mercado", (dados) =>
+    reset(parseMercadoData(dados)),
+  );
 
   const dados = watch();
   const { status } = useAutosave(processoId, "mercado", dados);

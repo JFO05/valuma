@@ -68,12 +68,18 @@ export const socioVazio: SocioFormValues = {
 
 /**
  * Funde o jsonb salvo com os defaults (cobre o caso de um processo novo, cujo
- * `dados` ainda é `{}`) e valida o resultado — se o jsonb estiver num formato
- * inesperado (ex: editado manualmente no Supabase), cai nos defaults em vez
- * de quebrar o formulário.
+ * `dados` ainda é `{}`, e de campos que só passam a existir em uma versão
+ * posterior do schema).
+ *
+ * NÃO valida contra perfilSchema aqui de propósito: o autosave salva
+ * progresso parcial o tempo todo (ex: só a razão social preenchida, sem
+ * setor/cidade ainda) — se isso passasse por `safeParse`, um preenchimento
+ * incompleto (o estado normal enquanto o usuário digita) falharia por causa
+ * dos campos `min(1)` do schema, e o resultado seria os defaults
+ * COMPLETOS, descartando tudo que já tinha sido digitado. A validação de
+ * obrigatoriedade continua acontecendo normalmente no formulário via
+ * `zodResolver(perfilSchema)`, que é o lugar certo pra isso.
  */
 export function parsePerfilData(dados: Record<string, unknown>): PerfilFormValues {
-  const merged = { ...perfilDefaultValues, ...dados };
-  const result = perfilSchema.safeParse(merged);
-  return result.success ? result.data : perfilDefaultValues;
+  return { ...perfilDefaultValues, ...dados } as PerfilFormValues;
 }

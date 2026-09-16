@@ -41,8 +41,10 @@ export const concorrenteVazio: ConcorrenteFormValues = {
   diferencialPercebido: "",
 };
 
+/**
+ * Não valida contra mercadoSchema de propósito — ver o comentário
+ * equivalente em schema-perfil.ts::parsePerfilData.
+ */
 export function parseMercadoData(dados: Record<string, unknown>): MercadoFormValues {
-  const merged = { ...mercadoDefaultValues, ...dados };
-  const result = mercadoSchema.safeParse(merged);
-  return result.success ? result.data : mercadoDefaultValues;
+  return { ...mercadoDefaultValues, ...dados } as MercadoFormValues;
 }

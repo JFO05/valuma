@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createActionClient } from "@/lib/supabase/action-client";
 import { isFaseIntake, type FaseIntake } from "@/lib/intake/fases";
 
@@ -50,6 +51,13 @@ export async function saveIntakeData(
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // O Client Cache do Next.js reaproveita a página anterior quando o
+  // usuário usa o botão Voltar/Avançar do navegador (não do stepper) —
+  // por padrão isso ignora o que acabou de ser salvo e mostra a versão de
+  // antes da edição. revalidatePath invalida esse cache para esta rota
+  // especificamente, então voltar por aí também mostra os dados atuais.
+  revalidatePath(`/intake/${processoId}/${fase}`);
 
   return { success: true };
 }
