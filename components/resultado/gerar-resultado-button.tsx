@@ -11,7 +11,15 @@ import { useRouter } from "next/navigation";
  * que busca o resultado recém-salvo em public.resultados — não precisamos
  * guardar o resultado no estado do client component.
  */
-export function GerarResultadoButton({ processoId }: { processoId: string }) {
+export function GerarResultadoButton({
+  processoId,
+  label = "Gerar Resultado",
+  variante = "primario",
+}: {
+  processoId: string;
+  label?: string;
+  variante?: "primario" | "secundario";
+}) {
   const router = useRouter();
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -58,14 +66,15 @@ export function GerarResultadoButton({ processoId }: { processoId: string }) {
     );
   }
 
+  const classeBotao =
+    variante === "primario"
+      ? "rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+      : "rounded border border-zinc-300 px-4 py-2 text-sm font-medium dark:border-zinc-700";
+
   return (
     <div className="flex flex-col items-center gap-2">
-      <button
-        type="button"
-        onClick={handleClick}
-        className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-      >
-        {erro ? "Tentar novamente" : "Gerar Resultado"}
+      <button type="button" onClick={handleClick} className={classeBotao}>
+        {erro ? "Tentar novamente" : label}
       </button>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
     </div>

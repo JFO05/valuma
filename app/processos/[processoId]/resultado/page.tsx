@@ -9,6 +9,7 @@ import { ScoreGauge } from "@/components/resultado/score-gauge";
 import { ScoreBreakdown } from "@/components/resultado/score-breakdown";
 import { AnaliseIaCards } from "@/components/resultado/analise-ia-cards";
 import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
+import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
 
 export default async function ResultadoPage({
   params,
@@ -92,6 +93,17 @@ export default async function ResultadoPage({
             <h2 className="text-lg font-semibold">Análise de IA</h2>
             <AnaliseIaCards analiseIA={resultado.analiseIA} />
           </section>
+
+          <div className="flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+            <p className="text-sm text-zinc-500">
+              Mudou algo no intake? Recalcule para atualizar o resultado.
+            </p>
+            <GerarResultadoButton
+              processoId={processoId}
+              label="Recalcular Resultado"
+              variante="secundario"
+            />
+          </div>
         </>
       )}
     </div>
