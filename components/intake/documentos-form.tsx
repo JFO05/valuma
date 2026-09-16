@@ -6,6 +6,7 @@ import { saveIntakeData } from "@/app/intake/actions";
 import { uploadDocumento } from "@/lib/intake/upload-documento";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
+import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { DocumentoListItem } from "@/components/intake/documento-list-item";
 import {
   DocumentoUploadProgress,
@@ -225,6 +226,7 @@ export function DocumentosForm({
       )}
 
       <AutosaveStatusIndicator status={status} />
+      <VoltarDashboardButton status={status} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
+import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { ConcorrentesFieldset } from "@/components/intake/concorrentes-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
 import {
@@ -80,6 +81,7 @@ export function MercadoForm({
       </fieldset>
 
       <AutosaveStatusIndicator status={status} />
+      <VoltarDashboardButton status={status} />
     </form>
   );
 }

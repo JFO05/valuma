@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
+import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { DreFieldset } from "@/components/intake/dre-fieldset";
 import { DividasFieldset } from "@/components/intake/dividas-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
@@ -108,6 +109,7 @@ export function FinanceiroForm({
       <DividasFieldset control={control} register={register} errors={errors} />
 
       <AutosaveStatusIndicator status={status} />
+      <VoltarDashboardButton status={status} />
     </form>
   );
 }

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
+import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { EquipeCargosFieldset } from "@/components/intake/equipe-cargos-fieldset";
 import { ClientesPrincipaisFieldset } from "@/components/intake/clientes-principais-fieldset";
 import { FornecedoresFieldset } from "@/components/intake/fornecedores-fieldset";
@@ -120,6 +121,7 @@ export function OperacaoForm({
       </fieldset>
 
       <AutosaveStatusIndicator status={status} />
+      <VoltarDashboardButton status={status} />
     </form>
   );
 }

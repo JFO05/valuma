@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
+import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { SociosFieldset } from "@/components/intake/socios-fieldset";
 import { syncPartners } from "@/app/intake/perfil-actions";
 import {
@@ -164,6 +165,7 @@ export function PerfilForm({
       <SociosFieldset control={control} register={register} errors={errors} />
 
       <AutosaveStatusIndicator status={status} />
+      <VoltarDashboardButton status={status} />
     </form>
   );
 }
