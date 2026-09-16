@@ -8,7 +8,7 @@ import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { SociosFieldset } from "@/components/intake/socios-fieldset";
-import { syncPartners } from "@/app/intake/perfil-actions";
+import { syncPartners, atualizarNomeEmpresa } from "@/app/intake/perfil-actions";
 import {
   PORTE_LABELS,
   PORTE_OPTIONS,
@@ -51,14 +51,21 @@ export function PerfilForm({
   const dados = watch();
   const { status } = useAutosave(processoId, "perfil", dados);
 
-  // Depois que o jsonb da etapa é salvo, sincroniza a cópia normalizada de
-  // sócios em public.partners (ver app/intake/perfil-actions.ts).
+  // Depois que o jsonb da etapa é salvo: sincroniza a cópia normalizada de
+  // sócios em public.partners, e atualiza processos.nome_empresa com a
+  // razão social (esse campo começa como "Empresa sem nome" e não muda
+  // sozinho — ver app/intake/perfil-actions.ts).
   useEffect(() => {
     if (status !== "salvo") return;
 
     syncPartners(processoId, dados.socios).catch(() => {
       // Silencioso: partners é uma cópia derivada, o jsonb continua sendo a
       // fonte de verdade caso essa sincronização falhe pontualmente.
+    });
+
+    atualizarNomeEmpresa(processoId, dados.razaoSocial).catch(() => {
+      // Silencioso pelo mesmo motivo: nome_empresa é só um espelho do
+      // razaoSocial do jsonb, não a fonte de verdade.
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);

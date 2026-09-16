@@ -59,3 +59,47 @@ export async function syncPartners(
 
   return { success: true };
 }
+
+type AtualizarNomeEmpresaResult =
+  | { success: true }
+  | { success: false; error: string };
+
+/**
+ * public.processos.nome_empresa começa como "Empresa sem nome" (definido em
+ * app/intake/page.tsx na criação do processo) e nunca é atualizado sozinho —
+ * a razão social só existe no jsonb da fase "perfil". Sincroniza os dois
+ * para que a lista de processos do dashboard mostre o nome real assim que o
+ * usuário preenche o Perfil. Chamada pelo PerfilForm junto com syncPartners.
+ */
+export async function atualizarNomeEmpresa(
+  processoId: string,
+  razaoSocial: string,
+): Promise<AtualizarNomeEmpresaResult> {
+  const nome = razaoSocial.trim();
+  if (!nome) {
+    // Não sobrescreve com vazio — mantém o nome atual até haver algo pra
+    // colocar no lugar.
+    return { success: true };
+  }
+
+  const supabase = await createActionClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Sessão expirada." };
+  }
+
+  const { error } = await supabase
+    .from("processos")
+    .update({ nome_empresa: nome })
+    .eq("id", processoId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
