@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "valuation:test": "tsx scripts/testar-valuation.ts"
+    "valuation:test": "tsx scripts/testar-valuation.ts",
+    "prontidao:test": "tsx scripts/testar-prontidao.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

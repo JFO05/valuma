@@ -1,18 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { consolidarDadosProcesso } from "@/lib/valuation/consolidar";
-// TODO(Pessoa B): se calcularValuation/calcularScore ainda não existirem no
-// momento de rodar isso, comente as duas linhas abaixo e use stubs com a
-// mesma assinatura, por exemplo:
-//   type ResultadoCalculoValuationStub = { valuationEbitda: number | null; valuationDcf: number | null; valuationPatrimonial: number; valuationFinal: number | null };
-//   type ResultadoScoreStub = { scoreFinanceiro: number; scoreOperacao: number; scoreMercado: number; scoreJuridico: number; scoreTotal: number };
-//   function calcularValuation(): ResultadoCalculoValuationStub { return { valuationEbitda: 0, valuationDcf: 0, valuationPatrimonial: 0, valuationFinal: 0 }; }
-//   function calcularScore(): ResultadoScoreStub { return { scoreFinanceiro: 50, scoreOperacao: 50, scoreMercado: 50, scoreJuridico: 50, scoreTotal: 50 }; }
-// e trocar pela importação real assim que as funções existirem. No momento
-// em que esta rota foi escrita, ambas já existiam em lib/valuation/, então
-// os stubs não foram necessários.
 import { calcularValuation } from "@/lib/valuation/calcular";
-import { calcularScore } from "@/lib/valuation/score";
+import { calcularProntidao } from "@/lib/prontidao/checklist";
 import { analisarComIA } from "@/lib/ai/analisar";
 import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
@@ -67,7 +57,7 @@ export async function POST(
   }
 
   const valuation = calcularValuation(dados);
-  const score = calcularScore(dados);
+  const prontidao = calcularProntidao(dados);
 
   // Guarda defensiva: com o checklist acima, valuationEbitda/valuationDcf
   // nunca deveriam vir null aqui — mantido como rede de segurança caso o
@@ -84,17 +74,21 @@ export async function POST(
 
   const analiseIA = await analisarComIA(dados);
 
+  // Fase 2 / D3: colunas score_* reaproveitadas para o Índice de Prontidão
+  // (financeiro/operacional/mercado/documental) — ver comentário em
+  // lib/valuation/types.ts::ResultadoValuation. "versao" dentro do jsonb
+  // distingue de resultados antigos gerados com o score de qualidade.
   const resultado: ResultadoValuation = {
     valuationFinal: valuation.valuationFinal ?? valuation.valuationPatrimonial,
     valuationEbitda: valuation.valuationEbitda,
     valuationDcf: valuation.valuationDcf,
     valuationPatrimonial: valuation.valuationPatrimonial,
-    scoreTotal: score.scoreTotal,
-    scoreFinanceiro: score.scoreFinanceiro,
-    scoreOperacao: score.scoreOperacao,
-    scoreMercado: score.scoreMercado,
-    scoreJuridico: score.scoreJuridico,
-    analiseIA,
+    scoreTotal: prontidao.indiceGeral,
+    scoreFinanceiro: prontidao.dimensoes.financeiro.nota,
+    scoreOperacao: prontidao.dimensoes.operacional.nota,
+    scoreMercado: prontidao.dimensoes.mercado.nota,
+    scoreJuridico: prontidao.dimensoes.documental.nota,
+    analiseIA: { ...analiseIA, versao: "prontidao_v1" },
   };
 
   const { data: salvo, error: saveError } = await supabase

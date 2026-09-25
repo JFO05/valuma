@@ -1,10 +1,14 @@
 import type { ResultadoValuation } from "@/lib/valuation/types";
 
+// Rótulos do Índice de Prontidão (Fase 2). As chaves continuam apontando
+// para os mesmos campos de ResultadoValuation/colunas do banco (score_*) —
+// só o rótulo mostrado mudou, para refletir o novo significado (ver
+// lib/valuation/types.ts::ResultadoValuation e docs/DECISOES_MVP.md, D3).
 const DIMENSOES = [
   { chave: "scoreFinanceiro", label: "Financeiro" },
-  { chave: "scoreOperacao", label: "Operação" },
+  { chave: "scoreOperacao", label: "Operacional" },
   { chave: "scoreMercado", label: "Mercado" },
-  { chave: "scoreJuridico", label: "Jurídico" },
+  { chave: "scoreJuridico", label: "Documental" },
 ] as const;
 
 export function ScoreBreakdown({

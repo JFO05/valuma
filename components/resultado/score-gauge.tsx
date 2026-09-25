@@ -1,30 +1,30 @@
 /**
- * Optei por uma barra segmentada em vez de um velocímetro/gauge circular:
- * mesmo efeito visual (posição numa escala de 0-100 com zonas coloridas),
- * sem precisar de SVG/matemática de arco nem de uma lib de gráficos nova.
+ * Índice de Prontidão para M&A (Fase 2) — NÃO é uma nota de qualidade do
+ * negócio, por isso o desenho evita qualquer leitura de "bom/ruim": sem
+ * gradiente vermelho-amarelo-verde nem rótulos como "Atenção/Regular/Bom"
+ * (o antigo score de qualidade tinha os dois; ambos foram removidos aqui).
+ * O texto de esclarecimento abaixo é o mesmo, literal, em toda tela que
+ * mostrar este número — ver docs/PLANO_EVOLUCAO_MVP.md, Fase 2.
  */
-export function ScoreGauge({ score }: { score: number }) {
-  const posicao = Math.min(100, Math.max(0, score));
+export function ScoreGauge({ indiceGeral }: { indiceGeral: number }) {
+  const posicao = Math.min(100, Math.max(0, indiceGeral));
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold">{score.toFixed(0)}</span>
-        <span className="text-zinc-500">/ 100</span>
-      </div>
+      <span className="text-4xl font-bold">{indiceGeral.toFixed(0)}%</span>
 
-      <div className="relative h-4 w-full overflow-hidden rounded-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400">
+      <div className="relative h-4 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
         <div
-          className="absolute top-0 h-full w-1 -translate-x-1/2 bg-black dark:bg-white"
-          style={{ left: `${posicao}%` }}
+          className="h-full rounded-full bg-ink dark:bg-accent"
+          style={{ width: `${posicao}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-xs text-zinc-500">
-        <span>Atenção</span>
-        <span>Regular</span>
-        <span>Bom</span>
-      </div>
+      <p className="text-xs text-zinc-500">
+        Percentual de preparação e estruturação das informações necessárias
+        para uma análise preliminar. Não é uma avaliação da qualidade da
+        empresa.
+      </p>
     </div>
   );
 }

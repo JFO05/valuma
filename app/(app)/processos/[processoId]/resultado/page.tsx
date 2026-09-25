@@ -94,8 +94,10 @@ export default async function ResultadoPage({
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">Score geral</h2>
-            <ScoreGauge score={resultado.scoreTotal} />
+            <h2 className="text-lg font-semibold">
+              Índice de Prontidão para M&amp;A
+            </h2>
+            <ScoreGauge indiceGeral={resultado.scoreTotal} />
             <ScoreBreakdown resultado={resultado} />
           </section>
 

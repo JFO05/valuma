@@ -44,26 +44,41 @@ export interface AnaliseIA {
    * public.resultados para não exigir uma coluna nova.
    */
   erro?: boolean;
+  /**
+   * Marca resultados gerados com o Índice de Prontidão (Fase 2, decisão D3
+   * em docs/DECISOES_MVP.md) — distingue de resultados antigos, gerados
+   * antes desta mudança, cujas colunas score_* guardam o significado
+   * anterior (nota de qualidade de lib/valuation/score.ts, removido nesta
+   * fase). Guardado aqui, dentro do jsonb `analise_ia`, por ser o único
+   * campo flexível disponível em public.resultados sem exigir migration.
+   */
+  versao?: "prontidao_v1";
 }
 
 /**
- * Formato final e combinado do resultado de um processo — valuation + score
- * + análise de IA — exatamente como vai ser retornado por `public.resultados`
- * quando essa tabela existir. Não confundir com `ResultadoCalculoValuation`
- * (em ./calcular.ts), que é só a saída bruta de `calcularValuation` (sem
- * scores nem IA); esse tipo aqui é o contrato "de fora para dentro" que a
- * tela de resultado (app/processos/[processoId]/resultado/page.tsx) espera
- * — hoje vem de lib/valuation/mock.ts, depois vai vir de uma query real.
+ * Formato final e combinado do resultado de um processo — valuation +
+ * Índice de Prontidão + análise de IA — como é salvo/lido de
+ * `public.resultados`. As colunas score_total/score_financeiro/
+ * score_operacao/score_mercado/score_juridico são REAPROVEITADAS da versão
+ * anterior (score de qualidade, lib/valuation/score.ts) para guardar o
+ * Índice de Prontidão (lib/prontidao/checklist.ts) — Fase 2, decisão D3 —
+ * sem exigir uma migration nova. scoreJuridico carrega hoje a dimensão
+ * "Documental" do Índice, não mais uma nota de completude jurídica
+ * específica (o nome da coluna no banco não mudou; só o significado e o
+ * rótulo mostrado na interface).
  */
 export interface ResultadoValuation {
   valuationFinal: number;
   valuationEbitda: number;
   valuationDcf: number;
   valuationPatrimonial: number;
+  /** Índice de Prontidão geral (média das 4 dimensões abaixo). */
   scoreTotal: number;
   scoreFinanceiro: number;
+  /** Dimensão "Operacional" do Índice de Prontidão. */
   scoreOperacao: number;
   scoreMercado: number;
+  /** Dimensão "Documental" do Índice de Prontidão. */
   scoreJuridico: number;
   analiseIA: AnaliseIA;
 }
