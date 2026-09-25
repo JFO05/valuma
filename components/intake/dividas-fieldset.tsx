@@ -11,6 +11,7 @@ import {
   dividaVazia,
   type FinanceiroFormValues,
 } from "@/lib/intake/schema-financeiro";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
@@ -28,9 +29,17 @@ export function DividasFieldset({
     control,
     name: "dividas",
   });
+  const { confirm, dialog } = useConfirm();
+
+  async function handleRemover(index: number) {
+    if (await confirm("Remover esta dívida? Ela deixará de entrar no cálculo do valuation.")) {
+      remove(index);
+    }
+  }
 
   return (
     <fieldset className="flex flex-col gap-4">
+      {dialog}
       <div className="flex items-center justify-between">
         <legend className="text-sm font-semibold">
           Dívidas e financiamentos
@@ -101,7 +110,7 @@ export function DividasFieldset({
           <div className="flex items-end">
             <button
               type="button"
-              onClick={() => remove(index)}
+              onClick={() => handleRemover(index)}
               className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium text-red-600 dark:border-zinc-700"
             >
               Remover

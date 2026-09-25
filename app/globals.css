@@ -1,13 +1,28 @@
 @import "tailwindcss";
 
+/*
+ * Identidade visual do ValuM&A: tinta (ink) grafite-azulada para marca e
+ * texto de maior peso, e um dourado envelhecido (accent) usado com
+ * moderação — em avaliação de empresas, ouro é o vocabulário visual de
+ * "valor", então é uma escolha ligada ao domínio, não decoração genérica.
+ * O resto da interface permanece no zinc neutro do Tailwind de propósito:
+ * o destaque deve ficar concentrado em poucos elementos (marca, número de
+ * valuation, ações primárias), não espalhado.
+ */
 :root {
-  --background: #ffffff;
+  --background: #fafaf9;
   --foreground: #171717;
+  --color-ink: #101a2e;
+  --color-accent: #a9812f;
+  --color-accent-contrast: #fffaf0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ink: var(--color-ink);
+  --color-accent: var(--color-accent);
+  --color-accent-contrast: var(--color-accent-contrast);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -16,11 +31,19 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --color-ink: #e8ecf5;
+    --color-accent: #c9a24a;
+    --color-accent-contrast: #101a2e;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Dígitos com largura fixa para valores financeiros alinharem em colunas/cards. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

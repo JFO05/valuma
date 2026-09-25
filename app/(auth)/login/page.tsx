@@ -55,7 +55,15 @@ export default function LoginPage() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          Senha
+          <span className="flex items-center justify-between">
+            Senha
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-zinc-500 underline"
+            >
+              Esqueceu a senha?
+            </Link>
+          </span>
           <input
             type="password"
             required
@@ -70,7 +78,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+          className="rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>

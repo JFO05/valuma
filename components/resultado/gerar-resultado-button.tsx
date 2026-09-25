@@ -45,6 +45,7 @@ export function GerarResultadoButton({
       }
 
       router.refresh();
+      setCarregando(false);
     } catch {
       setErro("Falha de conexão. Tente novamente.");
       setCarregando(false);

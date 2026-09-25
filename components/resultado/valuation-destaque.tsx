@@ -6,7 +6,7 @@ export function ValuationDestaque({ valor }: { valor: number }) {
       <span className="text-sm font-medium text-zinc-500">
         Valuation estimado
       </span>
-      <span className="text-4xl font-bold tracking-tight sm:text-5xl">
+      <span className="tabular-nums text-4xl font-bold tracking-tight text-ink sm:text-5xl dark:text-accent">
         {formatBRL(valor)}
       </span>
     </div>

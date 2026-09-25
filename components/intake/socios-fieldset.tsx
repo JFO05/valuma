@@ -10,6 +10,7 @@ import {
   socioVazio,
   type PerfilFormValues,
 } from "@/lib/intake/schema-perfil";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
@@ -27,9 +28,15 @@ export function SociosFieldset({
     control,
     name: "socios",
   });
+  const { confirm, dialog } = useConfirm();
+
+  async function handleRemover(index: number) {
+    if (await confirm(`Remover o sócio ${index + 1}?`)) remove(index);
+  }
 
   return (
     <fieldset className="flex flex-col gap-4">
+      {dialog}
       <div className="flex items-center justify-between">
         <legend className="text-sm font-semibold">Sócios</legend>
         <button
@@ -90,7 +97,7 @@ export function SociosFieldset({
           <div className="flex items-end">
             <button
               type="button"
-              onClick={() => remove(index)}
+              onClick={() => handleRemover(index)}
               className="rounded border border-zinc-300 px-3 py-2 text-sm font-medium text-red-600 dark:border-zinc-700"
             >
               Remover
