@@ -142,3 +142,36 @@ Total: 30 itens (financeiro) + 7 (operacional) + 4 (mercado) + 5 (documental) = 
 - `npx tsx scripts/testar-prontidao.ts` (novo script, mesmo padrão de `testar-valuation.ts` — sem D6 resolvido ainda, então sem framework de testes formal): 20 verificações, todas passando — configuração (nenhuma dimensão com 0 itens), intake vazio = 0 em tudo, intake completo = 100 em tudo, um caso calculado manualmente no próprio script (Mercado com 3 de 4 itens = 75%), e o ciclo remover-campo/nota cai/pendência aparece → devolver-campo/nota volta/pendência some.
 - Testado manualmente no navegador: os 2 processos de teste existentes recalculados com sucesso, Índice Geral batendo com a média manual das 4 dimensões exibidas, terminologia e ausência de rótulos de qualidade confirmadas visualmente.
 - Sem framework de testes automatizado ainda (D6 pendente) — os testes desta fase foram manuais, com scripts de apoio descartáveis (Playwright), não incorporados ao repositório.
+
+---
+
+## Fase 3 — Resultado e explicabilidade
+
+### Motor de valuation
+
+Confirmado na Fase 0 e reconfirmado aqui: `lib/valuation/calcular.ts` já expõe `valuationEbitda`, `valuationDcf`, `valuationPatrimonial` e `valuationFinal` separadamente — **nenhuma refatoração foi necessária**. A matemática (50/30/20) não foi alterada. **D1 (EBITDA não positivo) continua sem resposta do grupo** — por isso a especificação "métodos não aplicáveis indicados conforme D1" não foi implementada; a fórmula em `components/resultado/como-chegamos.tsx` sempre mostra os 3 métodos, o que é seguro hoje porque o DEF-01 (Fase 1) já garante que `valuationEbitda`/`valuationDcf` nunca são nulos num resultado salvo — mas não cobre o caso de um EBITDA/patrimônio informado e diferente de zero, porém **negativo** (o cenário exato de D1).
+
+### Nova hierarquia da tela de resultado
+
+Implementada na ordem exata da especificação, em `app/(app)/processos/[processoId]/resultado/page.tsx`:
+
+1. `ValuationDestaque` — rótulo trocado para "Estimativa preliminar de valuation", com "Análise preliminar" logo abaixo do número.
+2. Índice de Prontidão (`ScoreGauge` + `ScoreBreakdown`, inalterados desde a Fase 2) — usa os números **salvos** (`resultado`, do último "Gerar/Recalcular Resultado").
+3. **Nova seção "O que ainda falta"** (`components/resultado/pendencias-prontidao.tsx`) — resumo por dimensão ("Financeiro: faltam 22 de 30 informações"), cada uma com link para a etapa correspondente. Diferente de `pendencias-obrigatorias.tsx` (DEF-01), que lista campo por campo: aqui são até 46 itens possíveis, então a granularidade é por dimensão, exatamente como a especificação pede ("pendências por dimensão, com link para a etapa correspondente" — sem mencionar campo).
+4. **Nova seção colapsável "Como chegamos a este resultado?"** (`components/resultado/como-chegamos.tsx`), usando `<details>`/`<summary>` nativos do HTML — sem nenhuma dependência nova para accordion/modal. Mostra o breakdown por método (reaproveita o `ValuationBreakdown` que antes ficava solto na tela) + a fórmula com os valores reais, e o breakdown "N de M informações → nota" por dimensão + a conta do Índice Geral.
+5. Análise de IA (inalterada).
+6. Botão de PDF — **não implementado nesta fase**, como a própria especificação já indica (pertence à Fase 5, que depende de D4).
+7. Aviso de análise preliminar — texto literal da especificação, sempre visível junto do resultado.
+
+**Importante sobre "O que ainda falta" e "Como chegamos":** usam o Índice de Prontidão calculado **ao vivo** a partir do intake atual (`calcularProntidao(dadosProcesso)`, chamado toda vez que a página carrega), não o valor congelado no último resultado salvo — mesmo raciocínio já usado para as pendências obrigatórias do DEF-01: se o usuário editou o intake depois da última geração, a seção de pendências reflete o estado atual, podendo divergir do índice mostrado na seção 2 (que é o retrato de quando o resultado foi gerado) até o usuário clicar em "Recalcular".
+
+### IA como contexto de leitura
+
+`lib/ai/analisar.ts::analisarComIA` passou a receber um segundo parâmetro, `resultadoNumerico: { valuation, prontidao }` — os mesmos objetos que `app/api/.../gerar-resultado/route.ts` já calculava antes de chamar a IA. O prompt ganhou uma seção final "Resultado já calculado (contexto de leitura — não recalcule)" com os 3 valores de valuation e as 4 dimensões + Índice Geral da prontidão, e o `SYSTEM_PROMPT` ganhou uma regra explícita instruindo a IA a nunca recalcular ou contestar esses números.
+
+**Garantia de que a IA não pode alterar nenhum número exibido** (por construção, não por confiança na obediência do modelo): em `route.ts`, `valuation` e `prontidao` são calculados e usados para montar todos os campos numéricos de `resultado` (`valuationFinal`, `valuationEbitda`, `scoreTotal`, etc.) **antes** de `analisarComIA` ser chamada; o retorno da IA só é usado para popular o campo `analiseIA` (texto), que nunca realimenta nenhum cálculo. Verificado empiricamente na Fase 1 (teste do DEF-03): com a `ANTHROPIC_API_KEY` removida e depois restaurada, o mesmo processo mostrou exatamente os mesmos números de valuation e índice nos dois casos, só a seção de IA mudou de estado. Sem D6 resolvido, não há um teste automatizado de "trocar o mock da IA não muda os números" — a garantia estrutural do código + essa evidência empírica anterior substituem isso por ora.
+
+### Verificação desta fase
+
+- `npx next build`, `npx tsc --noEmit`, `npx eslint .`: todos limpos (mesmos 4 warnings pré-existentes, não relacionados).
+- Testado manualmente no navegador (processo "Empresa Teste Campinas Ltda."): a fórmula exibida em "Como chegamos" (R$ 2.880.000 × 0,50 + R$ 2.618.070 × 0,30 + R$ 1.500.000 × 0,20 = R$ 2.525.421) confere exatamente com o número exibido no topo da página; o Índice Geral (27% + 100% + 100% + 20%) / 4 = 62% confere com a seção 2; a seção "O que ainda falta" mostrou corretamente Financeiro e Documental (as duas dimensões incompletas) com link funcional para a etapa; a análise de IA referenciou os números reais do processo sem introduzir valores divergentes.

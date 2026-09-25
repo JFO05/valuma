@@ -5,10 +5,12 @@ import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import type { ResultadoValuation } from "@/lib/valuation/types";
 import { consolidarDadosProcesso } from "@/lib/valuation/consolidar";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
+import { calcularProntidao } from "@/lib/prontidao/checklist";
 import { ValuationDestaque } from "@/components/resultado/valuation-destaque";
-import { ValuationBreakdown } from "@/components/resultado/valuation-breakdown";
 import { ScoreGauge } from "@/components/resultado/score-gauge";
 import { ScoreBreakdown } from "@/components/resultado/score-breakdown";
+import { PendenciasProntidao } from "@/components/resultado/pendencias-prontidao";
+import { ComoChegamos } from "@/components/resultado/como-chegamos";
 import { AnaliseIaCards } from "@/components/resultado/analise-ia-cards";
 import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
 import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
@@ -63,6 +65,12 @@ export default async function ResultadoPage({
   const dadosProcesso = await consolidarDadosProcesso(processoId);
   const pendencias = verificarCamposObrigatorios(dadosProcesso);
 
+  // Fase 3: "O que ainda falta" e "Como chegamos" usam o Índice de Prontidão
+  // calculado AO VIVO a partir do intake atual (não o valor congelado no
+  // último resultado salvo) — mesmo raciocínio do DEF-01: o usuário pode ter
+  // editado o intake depois da última geração.
+  const prontidaoAoVivo = calcularProntidao(dadosProcesso);
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 p-8">
       <div>
@@ -84,15 +92,10 @@ export default async function ResultadoPage({
         />
       ) : (
         <>
+          {/* 1. Estimativa preliminar de valuation */}
           <ValuationDestaque valor={resultado.valuationFinal} />
 
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">
-              Composição do valuation
-            </h2>
-            <ValuationBreakdown resultado={resultado} />
-          </section>
-
+          {/* 2. Índice de Prontidão — nota geral e as 4 dimensões */}
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold">
               Índice de Prontidão para M&amp;A
@@ -101,10 +104,30 @@ export default async function ResultadoPage({
             <ScoreBreakdown resultado={resultado} />
           </section>
 
+          {/* 3. O que ainda falta */}
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">O que ainda falta</h2>
+            <PendenciasProntidao
+              processoId={processoId}
+              prontidao={prontidaoAoVivo}
+            />
+          </section>
+
+          {/* 4. Como chegamos a este resultado? (recolhível) */}
+          <ComoChegamos resultado={resultado} prontidao={prontidaoAoVivo} />
+
+          {/* 5. Análise qualitativa */}
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold">Análise de IA</h2>
             <AnaliseIaCards analiseIA={resultado.analiseIA} processoId={processoId} />
           </section>
+
+          {/* 7. Aviso de análise preliminar */}
+          <p className="text-xs text-zinc-500">
+            Os resultados apresentados constituem uma análise preliminar
+            baseada nas informações fornecidas e não substituem avaliação
+            financeira, contábil ou jurídica especializada.
+          </p>
 
           <div className="flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
             {pendencias.length > 0 ? (

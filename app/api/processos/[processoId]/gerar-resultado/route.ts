@@ -72,7 +72,10 @@ export async function POST(
     );
   }
 
-  const analiseIA = await analisarComIA(dados);
+  // Fase 3: a IA recebe os números JÁ calculados (valuation + prontidão)
+  // como contexto de leitura — nunca os recalcula nem os altera (ver
+  // lib/ai/analisar.ts e docs/DECISOES_MVP.md).
+  const analiseIA = await analisarComIA(dados, { valuation, prontidao });
 
   // Fase 2 / D3: colunas score_* reaproveitadas para o Índice de Prontidão
   // (financeiro/operacional/mercado/documental) — ver comentário em

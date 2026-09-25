@@ -7,10 +7,27 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod/v4";
 import type { DadosProcesso } from "@/lib/valuation/consolidar";
 import { anosDreComDados, type AnaliseIA } from "@/lib/valuation/types";
+import type { ResultadoCalculoValuation } from "@/lib/valuation/calcular";
+import type { ResultadoProntidao } from "@/lib/prontidao/checklist";
 import { PORTE_LABELS } from "@/lib/intake/schema-perfil";
 import { NIVEL_DEPENDENCIA_LABELS } from "@/lib/intake/schema-operacao";
 import { PORTE_CONCORRENTE_LABELS } from "@/lib/intake/schema-mercado";
 import { formatBRL } from "@/lib/format";
+
+/**
+ * Fase 3 (docs/PLANO_EVOLUCAO_MVP.md): a IA recebe os números JÁ calculados
+ * pelo motor determinístico (lib/valuation/calcular.ts,
+ * lib/prontidao/checklist.ts) só como CONTEXTO DE LEITURA para a análise
+ * qualitativa — nunca para recalcular ou contestar. Passados como parâmetro
+ * (não recalculados aqui) porque quem chama esta função (app/api/.../
+ * gerar-resultado/route.ts) já os calculou antes de chamar a IA; isso também
+ * garante, por construção, que a resposta da IA nunca pode alterar nenhum
+ * valor numérico exibido (ver docs/DECISOES_MVP.md, Fase 3).
+ */
+export interface ResultadoNumericoParaContexto {
+  valuation: ResultadoCalculoValuation;
+  prontidao: ResultadoProntidao;
+}
 
 const client = new Anthropic();
 
@@ -60,16 +77,26 @@ Regras:
   existe — trate a ausência de dado como um ponto de atenção quando fizer
   sentido (ex: nenhum documento societário informado é, em si, um risco para
   due diligence).
+- O resumo inclui uma seção "Resultado já calculado", com o valuation e o
+  Índice de Prontidão que um motor determinístico já produziu, ANTES desta
+  análise. Use esses números só como contexto para sua leitura qualitativa
+  (por exemplo, para comentar se a margem sustenta o valuation, ou se a
+  prontidão baixa numa dimensão explica um risco). NUNCA recalcule, conteste
+  ou proponha um valor numérico diferente para valuation, índice ou notas —
+  isso não é sua função nesta análise.
 - Escreva cada item das listas como uma frase curta e objetiva, em
   português, sem markdown.`;
 
-export async function analisarComIA(dados: DadosProcesso): Promise<AnaliseIA> {
+export async function analisarComIA(
+  dados: DadosProcesso,
+  resultadoNumerico: ResultadoNumericoParaContexto,
+): Promise<AnaliseIA> {
   try {
     const response = await client.messages.parse({
       model: MODEL,
       max_tokens: 16000,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: montarPrompt(dados) }],
+      messages: [{ role: "user", content: montarPrompt(dados, resultadoNumerico) }],
       output_config: {
         format: zodOutputFormat(analiseIaSchema),
       },
@@ -111,7 +138,10 @@ export async function analisarComIA(dados: DadosProcesso): Promise<AnaliseIA> {
  * Documentado aqui porque é exatamente o texto que vira o "prompt enviado à
  * IA" para fins de documentação do TCC.
  */
-function montarPrompt(dados: DadosProcesso): string {
+function montarPrompt(
+  dados: DadosProcesso,
+  resultadoNumerico: ResultadoNumericoParaContexto,
+): string {
   return [
     "Analise os dados a seguir, coletados no intake de um processo de valuation/M&A.",
     "",
@@ -122,6 +152,22 @@ function montarPrompt(dados: DadosProcesso): string {
     montarSecaoOperacao(dados),
     "",
     montarSecaoMercado(dados),
+    "",
+    montarSecaoResultadoCalculado(resultadoNumerico),
+  ].join("\n");
+}
+
+function montarSecaoResultadoCalculado({
+  valuation,
+  prontidao,
+}: ResultadoNumericoParaContexto): string {
+  return [
+    "## Resultado já calculado (contexto de leitura — não recalcule)",
+    `- Múltiplo de EBITDA: ${valuation.valuationEbitda !== null ? formatBRL(valuation.valuationEbitda) : "não aplicável (sem EBITDA base)"}`,
+    `- Fluxo de caixa descontado simplificado: ${valuation.valuationDcf !== null ? formatBRL(valuation.valuationDcf) : "não aplicável (sem EBITDA base)"}`,
+    `- Patrimonial: ${formatBRL(valuation.valuationPatrimonial)}`,
+    `- Valuation consolidado (50% EBITDA + 30% DCF + 20% patrimonial): ${valuation.valuationFinal !== null ? formatBRL(valuation.valuationFinal) : "não aplicável"}`,
+    `- Índice de Prontidão para M&A: ${prontidao.indiceGeral.toFixed(0)}% (Financeiro ${prontidao.dimensoes.financeiro.nota}%, Operacional ${prontidao.dimensoes.operacional.nota}%, Mercado ${prontidao.dimensoes.mercado.nota}%, Documental ${prontidao.dimensoes.documental.nota}%)`,
   ].join("\n");
 }
 
