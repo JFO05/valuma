@@ -41,7 +41,11 @@ export function OperacaoForm({
   );
 
   const dados = watch();
-  const { status } = useAutosave(processoId, "operacao", dados);
+  const { status, ultimoSalvamento, tentarNovamente } = useAutosave(
+    processoId,
+    "operacao",
+    dados,
+  );
 
   return (
     <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-8">
@@ -120,7 +124,11 @@ export function OperacaoForm({
         />
       </fieldset>
 
-      <AutosaveStatusIndicator status={status} />
+      <AutosaveStatusIndicator
+        status={status}
+        ultimoSalvamento={ultimoSalvamento}
+        onTentarNovamente={tentarNovamente}
+      />
       <VoltarDashboardButton status={status} />
     </form>
   );

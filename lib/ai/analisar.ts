@@ -45,6 +45,7 @@ const FALLBACK_ANALISE_IA: AnaliseIA = {
   pontosFortes: [],
   riscos: [],
   recomendacoes: [],
+  erro: true,
 };
 
 const SYSTEM_PROMPT = `Você é um analista financeiro especializado em valuation e M&A de pequenas e

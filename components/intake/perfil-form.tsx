@@ -8,7 +8,7 @@ import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { SociosFieldset } from "@/components/intake/socios-fieldset";
-import { syncPartners, atualizarNomeEmpresa } from "@/app/intake/perfil-actions";
+import { syncPartners, atualizarNomeEmpresa } from "@/app/(app)/intake/perfil-actions";
 import {
   PORTE_LABELS,
   PORTE_OPTIONS,
@@ -49,7 +49,11 @@ export function PerfilForm({
   // watch() sem argumentos: objeto novo a cada mudança de campo, é o
   // gatilho que useAutosave espera (ver lib/hooks/useAutosave.ts).
   const dados = watch();
-  const { status } = useAutosave(processoId, "perfil", dados);
+  const { status, ultimoSalvamento, tentarNovamente } = useAutosave(
+    processoId,
+    "perfil",
+    dados,
+  );
 
   // Depois que o jsonb da etapa é salvo: sincroniza a cópia normalizada de
   // sócios em public.partners, e atualiza processos.nome_empresa com a
@@ -81,7 +85,7 @@ export function PerfilForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             Razão social
-            <input {...register("razaoSocial")} className={inputClass} />
+            <input id="razaoSocial" {...register("razaoSocial")} className={inputClass} />
             {errors.razaoSocial && (
               <span className="text-xs text-red-600">
                 {errors.razaoSocial.message}
@@ -113,7 +117,7 @@ export function PerfilForm({
 
           <label className="flex flex-col gap-1 text-sm">
             Setor/segmento de atuação
-            <input {...register("setor")} className={inputClass} />
+            <input id="setor" {...register("setor")} className={inputClass} />
             {errors.setor && (
               <span className="text-xs text-red-600">{errors.setor.message}</span>
             )}
@@ -171,7 +175,11 @@ export function PerfilForm({
 
       <SociosFieldset control={control} register={register} errors={errors} />
 
-      <AutosaveStatusIndicator status={status} />
+      <AutosaveStatusIndicator
+        status={status}
+        ultimoSalvamento={ultimoSalvamento}
+        onTentarNovamente={tentarNovamente}
+      />
       <VoltarDashboardButton status={status} />
     </form>
   );

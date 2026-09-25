@@ -1,4 +1,5 @@
 import type { AnaliseIA } from "@/lib/valuation/types";
+import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
 
 const SECOES = [
   {
@@ -18,7 +19,45 @@ const SECOES = [
   },
 ] as const;
 
-export function AnaliseIaCards({ analiseIA }: { analiseIA: AnaliseIA }) {
+/**
+ * Trata como "falhou" tanto o caso explícito (`erro: true`, gravado por
+ * lib/ai/analisar.ts desde o DEF-03) quanto resultados antigos, gerados
+ * antes dessa marcação existir, que ficaram com os 3 blocos vazios — uma
+ * resposta bem-sucedida da IA sempre tem pelo menos alguns itens (o prompt
+ * pede de 3 a 5 por bloco), então "tudo vazio" nunca é um resultado válido.
+ */
+function analiseFalhou(analiseIA: AnaliseIA): boolean {
+  return (
+    analiseIA.erro === true ||
+    analiseIA.pontosFortes.length +
+      analiseIA.riscos.length +
+      analiseIA.recomendacoes.length ===
+      0
+  );
+}
+
+export function AnaliseIaCards({
+  analiseIA,
+  processoId,
+}: {
+  analiseIA: AnaliseIA;
+  processoId: string;
+}) {
+  if (analiseFalhou(analiseIA)) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Análise qualitativa indisponível no momento.
+        </p>
+        <GerarResultadoButton
+          processoId={processoId}
+          label="Tentar novamente"
+          variante="secundario"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {SECOES.map((secao) => (

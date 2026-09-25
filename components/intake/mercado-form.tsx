@@ -40,7 +40,11 @@ export function MercadoForm({
   );
 
   const dados = watch();
-  const { status } = useAutosave(processoId, "mercado", dados);
+  const { status, ultimoSalvamento, tentarNovamente } = useAutosave(
+    processoId,
+    "mercado",
+    dados,
+  );
 
   return (
     <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-8">
@@ -80,7 +84,11 @@ export function MercadoForm({
         />
       </fieldset>
 
-      <AutosaveStatusIndicator status={status} />
+      <AutosaveStatusIndicator
+        status={status}
+        ultimoSalvamento={ultimoSalvamento}
+        onTentarNovamente={tentarNovamente}
+      />
       <VoltarDashboardButton status={status} />
     </form>
   );

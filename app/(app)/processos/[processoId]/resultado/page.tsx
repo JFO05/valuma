@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import type { ResultadoValuation } from "@/lib/valuation/types";
+import { consolidarDadosProcesso } from "@/lib/valuation/consolidar";
+import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
 import { ValuationDestaque } from "@/components/resultado/valuation-destaque";
 import { ValuationBreakdown } from "@/components/resultado/valuation-breakdown";
 import { ScoreGauge } from "@/components/resultado/score-gauge";
@@ -10,6 +12,7 @@ import { ScoreBreakdown } from "@/components/resultado/score-breakdown";
 import { AnaliseIaCards } from "@/components/resultado/analise-ia-cards";
 import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
 import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
+import { PendenciasObrigatorias } from "@/components/resultado/pendencias-obrigatorias";
 
 export default async function ResultadoPage({
   params,
@@ -54,6 +57,12 @@ export default async function ResultadoPage({
     ? mapRowParaResultadoValuation(resultadoRow)
     : null;
 
+  // Calculado sempre (não só quando falta resultado): dados obrigatórios
+  // podem ter sido apagados do intake DEPOIS de um resultado já existir, e
+  // "Recalcular" precisa ficar bloqueado nesse caso também (DEF-01).
+  const dadosProcesso = await consolidarDadosProcesso(processoId);
+  const pendencias = verificarCamposObrigatorios(dadosProcesso);
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 p-8">
       <div>
@@ -61,7 +70,7 @@ export default async function ResultadoPage({
           href={`/intake/${processoId}/perfil`}
           className="text-sm text-zinc-500 underline"
         >
-          ← Voltar para o intake
+          ← Editar dados do intake
         </Link>
         <p className="mt-2 text-sm text-zinc-500">{processo.nome_empresa}</p>
         <h1 className="text-2xl font-semibold">Resultado do Valuation</h1>
@@ -71,6 +80,7 @@ export default async function ResultadoPage({
         <ResultadoVazio
           processoId={processoId}
           nomeEmpresa={processo.nome_empresa}
+          pendencias={pendencias}
         />
       ) : (
         <>
@@ -91,18 +101,33 @@ export default async function ResultadoPage({
 
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold">Análise de IA</h2>
-            <AnaliseIaCards analiseIA={resultado.analiseIA} />
+            <AnaliseIaCards analiseIA={resultado.analiseIA} processoId={processoId} />
           </section>
 
           <div className="flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-            <p className="text-sm text-zinc-500">
-              Mudou algo no intake? Recalcule para atualizar o resultado.
-            </p>
-            <GerarResultadoButton
-              processoId={processoId}
-              label="Recalcular Resultado"
-              variante="secundario"
-            />
+            {pendencias.length > 0 ? (
+              <>
+                <p className="text-sm text-zinc-500">
+                  Algumas informações obrigatórias foram removidas do intake
+                  desde a última geração:
+                </p>
+                <PendenciasObrigatorias
+                  processoId={processoId}
+                  pendencias={pendencias}
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-zinc-500">
+                  Mudou algo no intake? Recalcule para atualizar o resultado.
+                </p>
+                <GerarResultadoButton
+                  processoId={processoId}
+                  label="Recalcular Resultado"
+                  variante="secundario"
+                />
+              </>
+            )}
           </div>
         </>
       )}

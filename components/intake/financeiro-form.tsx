@@ -44,7 +44,11 @@ export function FinanceiroForm({
   );
 
   const dados = watch();
-  const { status } = useAutosave(processoId, "financeiro", dados);
+  const { status, ultimoSalvamento, tentarNovamente } = useAutosave(
+    processoId,
+    "financeiro",
+    dados,
+  );
 
   return (
     <form
@@ -98,6 +102,7 @@ export function FinanceiroForm({
           <label className="flex flex-col gap-1 text-sm">
             Patrimônio líquido
             <MoneyInput
+              id="patrimonioLiquido"
               control={control}
               name="balanco.patrimonioLiquido"
               className={inputClass}
@@ -108,7 +113,11 @@ export function FinanceiroForm({
 
       <DividasFieldset control={control} register={register} errors={errors} />
 
-      <AutosaveStatusIndicator status={status} />
+      <AutosaveStatusIndicator
+        status={status}
+        ultimoSalvamento={ultimoSalvamento}
+        onTentarNovamente={tentarNovamente}
+      />
       <VoltarDashboardButton status={status} />
     </form>
   );

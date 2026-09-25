@@ -1,20 +1,60 @@
 import type { AutosaveStatus as AutosaveStatusValue } from "@/lib/hooks/useAutosave";
 
-const STATUS_LABEL: Record<AutosaveStatusValue, string> = {
-  idle: "",
-  salvando: "Salvando...",
-  salvo: "Todas as alterações salvas",
-  erro: "Erro ao salvar. Ajuste algo para tentar de novo.",
-};
+function formatarHora(data: Date): string {
+  return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
+/**
+ * `ultimoSalvamento`/`onTentarNovamente` são opcionais: o formulário de
+ * Documentos (components/intake/documentos-form.tsx) não usa o hook
+ * useAutosave (tem seu próprio controle de status por upload) e continua
+ * passando só `status`, sem quebrar.
+ */
 export function AutosaveStatusIndicator({
   status,
+  ultimoSalvamento,
+  onTentarNovamente,
 }: {
   status: AutosaveStatusValue;
+  ultimoSalvamento?: Date | null;
+  onTentarNovamente?: () => void;
 }) {
+  if (status === "idle") {
+    return <p className="text-sm text-zinc-500" role="status" />;
+  }
+
+  if (status === "salvando") {
+    return (
+      <p className="text-sm text-zinc-500" role="status">
+        Salvando...
+      </p>
+    );
+  }
+
+  if (status === "salvo") {
+    return (
+      <p className="text-sm text-zinc-500" role="status">
+        {ultimoSalvamento
+          ? `Salvo às ${formatarHora(ultimoSalvamento)}`
+          : "Todas as alterações salvas"}
+      </p>
+    );
+  }
+
   return (
-    <p className="text-sm text-zinc-500" role="status">
-      {STATUS_LABEL[status]}
+    <p className="text-sm text-red-600" role="status">
+      Erro ao salvar.{" "}
+      {onTentarNovamente ? (
+        <button
+          type="button"
+          onClick={onTentarNovamente}
+          className="font-medium underline"
+        >
+          Tentar novamente
+        </button>
+      ) : (
+        "Ajuste algo para tentar de novo."
+      )}
     </p>
   );
 }

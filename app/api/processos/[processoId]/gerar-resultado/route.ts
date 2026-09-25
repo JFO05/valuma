@@ -15,6 +15,7 @@ import { calcularValuation } from "@/lib/valuation/calcular";
 import { calcularScore } from "@/lib/valuation/score";
 import { analisarComIA } from "@/lib/ai/analisar";
 import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
+import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
 import type { ResultadoValuation } from "@/lib/valuation/types";
 
 export async function POST(
@@ -50,13 +51,27 @@ export async function POST(
 
   const dados = await consolidarDadosProcesso(processoId);
 
+  // DEF-01: mesmo checklist mínimo (decisão D2) que já esconde o botão na
+  // tela — verificado de novo aqui porque a rota é alcançável por qualquer
+  // request, não só pelo clique no botão. Ver lib/valuation/campos-obrigatorios.ts.
+  const pendencias = verificarCamposObrigatorios(dados);
+  if (pendencias.length > 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Faltam informações obrigatórias para gerar o resultado. Complete o intake antes de tentar novamente.",
+        pendencias,
+      },
+      { status: 422 },
+    );
+  }
+
   const valuation = calcularValuation(dados);
   const score = calcularScore(dados);
 
-  // calcularValuation devolve null em valuationEbitda/valuationDcf quando não
-  // há nenhum ano do DRE com dados reais (ver anosDreComDados) — sem isso não
-  // dá pra montar um ResultadoValuation válido (esses campos não são
-  // opcionais nesse contrato).
+  // Guarda defensiva: com o checklist acima, valuationEbitda/valuationDcf
+  // nunca deveriam vir null aqui — mantido como rede de segurança caso o
+  // checklist e o motor divirjam no futuro.
   if (valuation.valuationEbitda === null || valuation.valuationDcf === null) {
     return NextResponse.json(
       {
@@ -109,6 +124,14 @@ export async function POST(
       { status: 500 },
     );
   }
+
+  // Melhor esforço: reflete no dashboard que o processo já tem um resultado
+  // gerado. Não falha a requisição se isso não gravar — o resultado em si já
+  // foi salvo com sucesso acima, que é o que importa.
+  await supabase
+    .from("processos")
+    .update({ status: "concluido" })
+    .eq("id", processoId);
 
   return NextResponse.json({
     resultado: mapRowParaResultadoValuation(salvo),

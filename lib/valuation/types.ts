@@ -37,6 +37,13 @@ export interface AnaliseIA {
   pontosFortes: string[];
   riscos: string[];
   recomendacoes: string[];
+  /**
+   * true quando a chamada à IA falhou nesta geração (chave ausente, erro da
+   * API, resposta fora do schema esperado) — ver DEF-03 em
+   * docs/DECISOES_MVP.md. Guardado dentro do próprio jsonb `analise_ia` de
+   * public.resultados para não exigir uma coluna nova.
+   */
+  erro?: boolean;
 }
 
 /**

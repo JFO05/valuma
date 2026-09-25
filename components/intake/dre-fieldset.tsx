@@ -63,6 +63,7 @@ export function DreFieldset({
               <label key={name} className="flex flex-col gap-1 text-sm">
                 {label}
                 <MoneyInput
+                  id={name === "ebitda" ? `dre-ebitda-${index}` : undefined}
                   control={control}
                   name={`dre.${index}.${name}`}
                   className={inputClass}

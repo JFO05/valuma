@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { saveIntakeData } from "@/app/intake/actions";
+import { saveIntakeData } from "@/app/(app)/intake/actions";
 import { uploadDocumento } from "@/lib/intake/upload-documento";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
+import { useConfirm } from "@/components/confirm-dialog";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { DocumentoListItem } from "@/components/intake/documento-list-item";
@@ -52,6 +53,8 @@ export function DocumentosForm({
   const [uploads, setUploads] = useState<UploadEmAndamento[]>([]);
   const [removendoPath, setRemovendoPath] = useState<string | null>(null);
   const [status, setStatus] = useState<AutosaveStatus>("idle");
+  const [erroGeral, setErroGeral] = useState<string | null>(null);
+  const { confirm, dialog } = useConfirm();
 
   // Serializa os saves: cada upload/remoção só grava no banco depois que o
   // anterior terminou, senão duas respostas de rede fora de ordem podem
@@ -75,6 +78,7 @@ export function DocumentosForm({
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
+    setErroGeral(null);
 
     // Snapshot ANTES de qualquer `await`: o <input> reseta `value = ""` logo
     // depois de chamar esta função (no handler onChange, para permitir
@@ -90,7 +94,7 @@ export function DocumentosForm({
     } = await supabase.auth.getSession();
 
     if (!session) {
-      window.alert("Sessão expirada. Faça login novamente.");
+      setErroGeral("Sessão expirada. Faça login novamente.");
       return;
     }
 
@@ -159,6 +163,12 @@ export function DocumentosForm({
   }
 
   async function handleRemover(documento: DocumentoArquivo) {
+    const confirmado = await confirm(
+      `Remover "${documento.nome}"? Essa ação não pode ser desfeita.`,
+    );
+    if (!confirmado) return;
+
+    setErroGeral(null);
     setRemovendoPath(documento.path);
 
     const supabase = createClient();
@@ -169,7 +179,7 @@ export function DocumentosForm({
     setRemovendoPath(null);
 
     if (error) {
-      window.alert(`Não foi possível remover o arquivo: ${error.message}`);
+      setErroGeral(`Não foi possível remover o arquivo: ${error.message}`);
       return;
     }
 
@@ -179,6 +189,14 @@ export function DocumentosForm({
 
   return (
     <div className="flex flex-col gap-4">
+      {dialog}
+
+      {erroGeral && (
+        <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          {erroGeral}
+        </p>
+      )}
+
       <label className="flex w-fit cursor-pointer flex-col gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-sm dark:border-zinc-700">
         <span className="font-medium">Clique para anexar arquivos</span>
         <span className="text-xs text-zinc-500">
