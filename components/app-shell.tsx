@@ -27,7 +27,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
+      <header className="print:hidden flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
         <Link
           href="/dashboard"
           className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50"

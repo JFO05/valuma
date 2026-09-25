@@ -228,3 +228,31 @@ Não foi feita como um item isolado de auditoria geral (fora do escopo pedido �
 - `npx eslint .`: 0 erros (4 warnings pré-existentes de `watch()`, mesmas de todas as fases anteriores).
 - `npx tsc --noEmit` / `npx next build`: limpos, todas as rotas compilando (incluindo depois da correção do bug do popover de ajuda).
 - Testado manualmente no navegador (Playwright ad-hoc, conta `augusto_lordano@hotmail.com`): saudação sem duplicação de e-mail; menu "⋮" com os itens corretos e condicionais (processo com resultado mostra "Ver resultado", processo sem mostra só "Editar dados"); Esc fecha o menu de ações; exclusão completa (confirmação com foco em "Cancelar" → "Excluir" → banner de sucesso → card removido) testada de ponta a ponta contra um processo de teste vazio; menu de perfil abre, edição de nome persiste após reload (via `router.refresh()`); sidebar desktop mostra as 5 etapas + "Resultado" com os indicadores corretos; stepper mobile continua funcionando em `lg:hidden`; popover de ajuda testado em EBITDA — abre por clique (após a correção do bug) e por foco de teclado, fecha com Esc.
+
+---
+
+## Fase 5 — PDF do resultado
+
+**D4 (resposta do grupo):** página de impressão — `window.print()` + CSS `@media print`, sem nenhuma biblioteca nova. A própria tela de resultado é o "documento"; o PDF é o que o navegador do usuário gera ao escolher "Salvar como PDF" no diálogo de impressão.
+
+### Por que essa abordagem satisfaz "mesma fonte de dados da tela, sem recálculo"
+
+Não existe rota, página ou componente novo que busque ou recalcule o resultado — o botão "Baixar relatório em PDF" (`components/resultado/baixar-pdf-button.tsx`) só chama `window.print()` na mesma árvore de componentes já renderizada por `app/(app)/processos/[processoId]/resultado/page.tsx`. Qualquer divergência entre tela e PDF estruturalmente não pode existir, porque são o mesmo DOM.
+
+### O que o CSS de impressão faz
+
+- `app/globals.css` ganhou um bloco `@media print` que força tema claro (`--background`/`--foreground` e `color` de todos os elementos com `!important`) independente do `prefers-color-scheme` do sistema operacional — sem isso, texto pensado para fundo escuro (`dark:text-*`) poderia ficar ilegível sobre o fundo branco que a impressão força. Cor de fundo/borda não foi forçada — no pior caso (SO em modo escuro) algum contêiner mantém uma cor de fundo escura, um efeito só estético, não um problema de legibilidade.
+- Classes `print:hidden` foram adicionadas a tudo que não faz sentido num documento estático: cabeçalho da aplicação (`components/app-shell.tsx`), o link "← Editar dados do intake", o próprio botão de baixar PDF, a seção inferior de "Recalcular"/pendências obrigatórias, e o componente `GerarResultadoButton` (usado tanto ali quanto no "Tentar novamente" da análise de IA com erro).
+- A seção colapsável "Como chegamos a este resultado?" (`components/resultado/como-chegamos.tsx`) precisa aparecer **aberta** no PDF mesmo que o usuário nunca tenha clicado nela na tela. Forçar isso só com CSS (`details:not([open])`) é frágil entre navegadores, então o componente (agora `"use client"`) escuta os eventos globais `beforeprint`/`afterprint`: abre de verdade antes de imprimir e devolve ao estado anterior depois — se o usuário já tinha aberto manualmente, continua aberta após a impressão; se estava fechada, volta a fechar. O texto do `<summary>` (com o indicador "+/−", que só faz sentido como affordance clicável) fica oculto no print e é substituído por um `<h3>` estático com o mesmo título.
+
+### Verificação desta fase
+
+- `npx eslint .`, `npx tsc --noEmit`, `npx next build`: todos limpos.
+- Testado com Playwright contra o processo "Empresa Teste Campinas Ltda." (que já tinha um resultado gerado): o texto extraído da tela normal e o texto extraído com `page.emulateMedia({ media: "print" })` são **idênticos** nos números (valuation R$ 2.525.421, Índice Geral 62%, as 4 notas por dimensão, as pendências) — nenhuma segunda fonte de cálculo.
+- Confirmado que o cabeçalho da aplicação e o botão "Baixar relatório em PDF" ficam ocultos (`isVisible() === false`) na mídia de impressão.
+- Confirmado via `window.dispatchEvent(new Event("beforeprint"))`/`"afterprint"` (os eventos reais de impressão não são emitidos por `emulateMedia` sozinho, só por uma impressão de verdade) que a seção "Como chegamos" abre automaticamente antes de imprimir, fecha depois se estava fechada, e permanece aberta depois se o usuário já a tinha aberto manualmente.
+- Gerado um PDF de verdade com `page.pdf()` (motor de impressão real do Chromium, não só emulação de mídia) do mesmo processo: a fórmula (R$ 2.880.000 × 0,50 + R$ 2.618.070 × 0,30 + R$ 1.500.000 × 0,20 = R$ 2.525.421) e o Índice Geral ((27% + 100% + 100% + 20%) / 4 = 62%) aparecem por extenso e conferem exatamente com a tela; nenhum elemento de navegação/ação aparece no documento.
+
+### Pendências
+
+Sem biblioteca de PDF, o layout impresso segue as regras de paginação padrão do navegador (não há controle fino de quebra de página entre seções) — aceitável para um MVP acadêmico; não foi testado em outros motores além do Chromium (o ambiente de desenvolvimento disponível só tinha esse navegador).

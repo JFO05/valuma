@@ -15,6 +15,7 @@ import { AnaliseIaCards } from "@/components/resultado/analise-ia-cards";
 import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
 import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
 import { PendenciasObrigatorias } from "@/components/resultado/pendencias-obrigatorias";
+import { BaixarPdfButton } from "@/components/resultado/baixar-pdf-button";
 
 export default async function ResultadoPage({
   params,
@@ -76,7 +77,7 @@ export default async function ResultadoPage({
       <div>
         <Link
           href={`/intake/${processoId}/perfil`}
-          className="text-sm text-zinc-500 underline"
+          className="print:hidden text-sm text-zinc-500 underline"
         >
           ← Editar dados do intake
         </Link>
@@ -122,6 +123,11 @@ export default async function ResultadoPage({
             <AnaliseIaCards analiseIA={resultado.analiseIA} processoId={processoId} />
           </section>
 
+          {/* 6. Baixar relatório em PDF (Fase 5, D4: window.print() + @media print, sem dependência nova) */}
+          <div className="print:hidden flex justify-center">
+            <BaixarPdfButton />
+          </div>
+
           {/* 7. Aviso de análise preliminar */}
           <p className="text-xs text-zinc-500">
             Os resultados apresentados constituem uma análise preliminar
@@ -129,7 +135,7 @@ export default async function ResultadoPage({
             financeira, contábil ou jurídica especializada.
           </p>
 
-          <div className="flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <div className="print:hidden flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
             {pendencias.length > 0 ? (
               <>
                 <p className="text-sm text-zinc-500">

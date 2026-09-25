@@ -47,3 +47,35 @@ body {
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/*
+ * Fase 5 (PDF do resultado, D4: window.print() sem dependência nova). Força
+ * o tema claro na impressão independente de `prefers-color-scheme` — um
+ * relatório para salvar/imprimir não deve sair com fundo escuro só porque o
+ * sistema operacional do usuário está em modo escuro. O restante do controle
+ * de visibilidade (o que aparece ou não no PDF) fica nas classes
+ * `print:hidden` já usadas nos componentes da tela de resultado.
+ *
+ * A cor do texto (`color`) é forçada em todos os elementos porque as classes
+ * `dark:text-*` do Tailwind reagem a `prefers-color-scheme`, não a esta
+ * troca de tema — sem isso, texto claro (pensado para fundo escuro) poderia
+ * ficar ilegível sobre o fundo branco forçado acima, se o sistema
+ * operacional estiver em modo escuro no momento da impressão. Fundos e
+ * bordas não são forçados: no pior caso (SO em modo escuro), algum
+ * contêiner mantém uma cor de fundo/borda escura — só um efeito estético,
+ * não um problema de legibilidade.
+ */
+@media print {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+  }
+
+  body {
+    background: white;
+  }
+
+  * {
+    color: #171717 !important;
+  }
+}

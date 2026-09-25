@@ -54,7 +54,7 @@ export function GerarResultadoButton({
 
   if (carregando) {
     return (
-      <div className="flex flex-col items-center gap-3">
+      <div className="print:hidden flex flex-col items-center gap-3">
         <div
           className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-black dark:border-zinc-700 dark:border-t-white"
           role="status"
@@ -73,7 +73,7 @@ export function GerarResultadoButton({
       : "rounded border border-zinc-300 px-4 py-2 text-sm font-medium dark:border-zinc-700";
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="print:hidden flex flex-col items-center gap-2">
       <button type="button" onClick={handleClick} className={classeBotao}>
         {erro ? "Tentar novamente" : label}
       </button>

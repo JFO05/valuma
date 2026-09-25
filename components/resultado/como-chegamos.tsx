@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { formatBRL } from "@/lib/format";
 import type { ResultadoValuation } from "@/lib/valuation/types";
 import type { ResultadoProntidao } from "@/lib/prontidao/checklist";
@@ -12,8 +15,9 @@ const ROTULOS_DIMENSAO: { chave: keyof ResultadoProntidao["dimensoes"]; label: s
 
 /**
  * Progressive disclosure (Fase 3) com <details>/<summary> nativos — sem
- * dependência nova para um modal/accordion. Fica fechado por padrão
- * (comportamento padrão do <details> sem o atributo `open`).
+ * dependência nova para um modal/accordion. Fica fechado por padrão na tela
+ * (comportamento padrão do <details> sem o atributo `open`), mas é forçado a
+ * abrir durante a impressão/PDF (Fase 5 — ver o efeito `beforeprint` abaixo).
  *
  * D1 (EBITDA não positivo) ainda não foi respondida pelo grupo — por isso a
  * fórmula abaixo sempre mostra os 3 métodos, sem o tratamento de "método não
@@ -33,13 +37,46 @@ export function ComoChegamos({
   const contribuicaoDcf = resultado.valuationDcf * 0.3;
   const contribuicaoPatrimonial = resultado.valuationPatrimonial * 0.2;
 
+  const detalhesRef = useRef<HTMLDetailsElement>(null);
+  const estadoAntesDeImprimirRef = useRef(false);
+
+  // Fase 5 (PDF via impressão): o relatório precisa mostrar esta seção
+  // mesmo que o usuário nunca tenha clicado para abri-la na tela. Forçar
+  // via CSS (`details:not([open])`) é frágil entre navegadores, então
+  // abrimos de verdade no `beforeprint` e devolvemos ao estado anterior no
+  // `afterprint`, para não alterar a experiência de quem só está navegando.
+  useEffect(() => {
+    function aoAntesDeImprimir() {
+      if (!detalhesRef.current) return;
+      estadoAntesDeImprimirRef.current = detalhesRef.current.open;
+      detalhesRef.current.open = true;
+    }
+    function aoDepoisDeImprimir() {
+      if (!detalhesRef.current) return;
+      detalhesRef.current.open = estadoAntesDeImprimirRef.current;
+    }
+
+    window.addEventListener("beforeprint", aoAntesDeImprimir);
+    window.addEventListener("afterprint", aoDepoisDeImprimir);
+    return () => {
+      window.removeEventListener("beforeprint", aoAntesDeImprimir);
+      window.removeEventListener("afterprint", aoDepoisDeImprimir);
+    };
+  }, []);
+
   return (
-    <details className="group flex flex-col gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <summary className="cursor-pointer text-sm font-semibold marker:content-none">
+    <details
+      ref={detalhesRef}
+      className="group flex flex-col gap-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+    >
+      <summary className="print:hidden cursor-pointer text-sm font-semibold marker:content-none">
         <span className="inline-block w-4 group-open:hidden">+</span>
         <span className="hidden w-4 group-open:inline-block">−</span>{" "}
         Como chegamos a este resultado?
       </summary>
+      <h3 className="hidden print:block text-sm font-semibold">
+        Como chegamos a este resultado?
+      </h3>
 
       <div className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">Valuation, por método</h3>
