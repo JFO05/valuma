@@ -175,3 +175,56 @@ Implementada na ordem exata da especificação, em `app/(app)/processos/[process
 
 - `npx next build`, `npx tsc --noEmit`, `npx eslint .`: todos limpos (mesmos 4 warnings pré-existentes, não relacionados).
 - Testado manualmente no navegador (processo "Empresa Teste Campinas Ltda."): a fórmula exibida em "Como chegamos" (R$ 2.880.000 × 0,50 + R$ 2.618.070 × 0,30 + R$ 1.500.000 × 0,20 = R$ 2.525.421) confere exatamente com o número exibido no topo da página; o Índice Geral (27% + 100% + 100% + 20%) / 4 = 62% confere com a seção 2; a seção "O que ainda falta" mostrou corretamente Financeiro e Documental (as duas dimensões incompletas) com link funcional para a etapa; a análise de IA referenciou os números reais do processo sem introduzir valores divergentes.
+
+---
+
+## Fase 4 — UX
+
+**D5 (resposta do grupo):** perfil do usuário como dropdown no cabeçalho (não uma página própria).
+
+**4.5 — sidebar vs. stepper (resposta do grupo):** a Fase 0 recomendou evoluir o stepper horizontal em vez de introduzir uma sidebar (heurística de consistência/minimalismo — duas navegações paralelas para o mesmo conjunto de 5 passos). O grupo optou explicitamente por **implementar a sidebar como pedido originalmente na especificação**, mantendo o stepper horizontal só para telas estreitas (`lg:hidden`), onde a sidebar não aparece. Registrado em código (`components/intake/intake-sidebar.tsx`).
+
+### 4.2 — Dashboard
+
+Removida a duplicação e-mail/saudação: `app/(app)/dashboard/page.tsx` agora busca `profile.nome_completo` e usa `nomeParaSaudacao = profile?.nome_completo || user.email` num único `<h1>Bem-vindo, {nomeParaSaudacao}!</h1>`; o e-mail deixou de aparecer solto na página (continua visível no cabeçalho, ver 4.4). Ordem confirmada: "Novo Valuation" antes de "Meus processos".
+
+### 4.3 — Cards de processo e exclusão
+
+- `components/dashboard/processos-lista.tsx` (novo, client component): cada card mostra empresa/status/última atualização/disponibilidade de resultado, com um menu "⋮" (`components/ui/menu.tsx`, novo) para as ações — em vez de vários botões soltos no card, que ficaria poluído com até 3 ações condicionais.
+- **Decisão deliberada sobre ARIA do menu:** `menu.tsx` **não** usa `role="menu"`/`role="menuitem"` — esses papéis implicam navegação por setas (contrato ARIA de "menu" completo), que não foi implementada. Usa `<button>`/`<a>` semânticos comuns dentro de um container posicionado, com fechamento por clique-fora e por Esc, e retorno de foco ao botão que abriu — um dropdown simples, não um menu ARIA completo. Registrado em comentário no próprio arquivo para não ser "corrigido" incorretamente no futuro.
+- Itens do menu: "Continuar preenchimento" / "Editar dados" (mesmo link, rótulo reflete se o processo já tem dados ou não), "Ver resultado" (só aparece se `completo`, isto é, se já existe um resultado gerado), "Excluir processo" (marcado `destrutivo`, cor vermelha).
+- **Exclusão:** `app/(app)/dashboard/actions.ts::excluirProcesso`. Ordem importa: os arquivos do Storage (bucket `documentos-intake`, prefixo `{processoId}/`) são listados e removidos **antes** de apagar a linha de `processos` — porque a policy de RLS do Storage checa `exists (select 1 from processos where id = ... and user_id = auth.uid())`, e essa checagem falharia (silenciosamente, negando a exclusão) se o processo já não existisse mais. `partners`, `intake_data` e `resultados` são tabelas Postgres reais com FK `on delete cascade` já configurada — não precisam de nenhum código extra; só o Storage (que não tem cascade nativo com FKs do Postgres) precisa de exclusão explícita antes.
+- Confirmação: `useConfirm()` (`components/confirm-dialog.tsx`, estendido para aceitar `{titulo, mensagem, confirmarLabel}` mantendo compatibilidade com o uso antigo de string simples) com o texto exato da especificação — título "Excluir este processo?", corpo "Esta ação não poderá ser desfeita.", botões "Cancelar"/"Excluir", foco inicial em "Cancelar". Após confirmar, `router.refresh()` + banner de feedback ("'{nome}' foi excluído.") na própria lista.
+- **Verificado em produção local:** exclusão de um processo de teste vazio ("Empresa sem nome", 0/5 etapas, sem dados reais) via o fluxo completo — menu → confirmar → banner de sucesso → card removido da lista sem erro no console/rede. Não foi verificado por consulta direta ao banco (sem acesso a um cliente SQL nesta sessão); a garantia de que `intake_data`/`resultados`/`partners` foram removidos vem da FK `on delete cascade` já existente no schema, não de uma nova inspeção.
+
+### D5 / 4.4 — Menu de perfil
+
+`components/perfil-menu.tsx` (novo, dropdown no cabeçalho, acionado clicando no e-mail): nome editável (server action `app/(app)/perfil-actions.ts::atualizarNomeUsuario`, grava em `public.users.nome_completo`), e-mail somente leitura, link "Redefinir senha" reaproveitando a página `/reset-password` já existente (sem fluxo novo), e "Sair" (`LogoutButton` já existente). Nenhuma menção a empresas/pré-cadastros, conforme a exclusão de escopo da especificação.
+
+### 4.5 — Navegação do intake
+
+- **Sidebar desktop** (`components/intake/intake-sidebar.tsx`, `hidden lg:flex`): "← Dashboard" no topo, as 5 etapas (mesmo indicador ✓/!/número do stepper, não só cor — `aria-current="step"` na etapa atual), e um item sempre acessível "Resultado" ao final (não fica desabilitado mesmo com pendências, para não bloquear quem só quer conferir o que já existe).
+- **Mobile/tablet:** o `IntakeStepper` horizontal que já existia foi mantido (dentro de um `div.lg:hidden`) — é a "solução mais simples compatível com o código atual" pedida na especificação para telas estreitas, em vez de construir uma segunda navegação responsiva.
+- **"← Dashboard" duplicado:** como a sidebar só aparece em `lg+`, um link equivalente foi adicionado no topo da coluna de conteúdo, visível só abaixo de `lg` (`lg:hidden`) — sem duplicação visual em nenhum tamanho de tela.
+- **Botão "Voltar para o Dashboard" do fim da página (`VoltarDashboardButton`) — decisão de manter:** ele é o único controle de navegação com consciência do estado do autosave (fica desabilitado enquanto o autosave está em andamento, evitando perda de dados). Os novos links "← Dashboard" (sidebar e mobile) não têm essa trava — são links `<a>` simples. Removê-lo deixaria só a navegação sem essa proteção; portanto foi mantido como o caminho "seguro" recomendado, com os links novos como atalhos adicionais. Documentado também em comentário no código (`components/app-shell.tsx`).
+
+### 4.6 — Propósito de cada etapa
+
+`lib/content/propositos-etapas.ts` (novo) — uma frase por etapa, exibida abaixo do título em `app/(app)/intake/[processoId]/[fase]/page.tsx`. Cada frase foi escrita conferindo o uso real do dado (ex.: Perfil explicitamente diz que não entra em nenhum cálculo; Financeiro menciona EBITDA/patrimônio líquido para o valuation **e** o Índice Financeiro; Operação/Mercado/Documentos mencionam só o Índice, nunca o valuation, porque de fato não entram na fórmula).
+
+### 4.7 — Ajuda contextual "(?)"
+
+- `lib/content/ajuda-campos.ts` (novo) — textos centralizados para os 8 campos prioritários da especificação (EBITDA, Receita Bruta, Patrimônio Líquido, Dívidas, Concentração de clientes, TAM, Sinergias, Documentos), cada um com "O que é?" e "Como influencia a análise?" em 2-3 frases. Cada texto foi conferido contra o código de cálculo real antes de ser escrito — por isso, por exemplo, o texto de "Dívidas" diz explicitamente que a informação **não** entra na fórmula de valuation, só no Índice de Prontidão (é isso que `lib/valuation/calcular.ts` de fato faz).
+- `components/ui/ajuda-popover.tsx` (novo) — botão "(?)" reaproveitado nos 8 campos, abre por clique/foco/Enter, fecha com Esc ou perda de foco, `aria-expanded`/`aria-describedby`.
+- **Bug encontrado e corrigido durante a verificação manual desta fase:** um clique de mouse no botão "(?)" abria e fechava o popover no mesmo gesto, porque o clique dispara primeiro um evento de foco (que abria o popover via `onFocus`) e em seguida o evento de clique (que alternava o estado via `onClick`, fechando de novo) — resultado líquido: clicar não fazia nada visível. Só o foco por teclado (Tab) funcionava. Corrigido com uma ref (`focoPorMouseRef`) marcada no `onMouseDown` (que sempre ocorre antes do foco) para o handler de foco ceder a vez ao de clique quando a abertura já vai ser tratada pelo clique. Reconfirmado depois: clique abre e fecha corretamente, foco puro por teclado também abre, Esc fecha.
+- **Achado à parte, corrigido no caminho:** `components/intake/dividas-fieldset.tsx` tinha uma mensagem de confirmação de remoção de dívida factualmente incorreta ("Ela deixará de entrar no cálculo do valuation" — falso, dívidas não entram no valuation) — corrigida para "Essa informação deixará de contar no Índice de Prontidão."
+
+### 4.8 — Acessibilidade e consistência
+
+Não foi feita como um item isolado de auditoria geral (fora do escopo pedido — "sem redesign estético, sem certificação WCAG completa"); em vez disso, cada componente novo desta fase já nasceu com os atributos pedidos: `aria-label` em todos os botões de ícone (menu "⋮", "(?)"), `aria-current="step"` na sidebar, `aria-expanded`/`aria-describedby` no popover de ajuda, foco inicial e retorno de foco no modal de confirmação e nos menus. Os spans de erro já existentes (`money-input.tsx`, DEF-02) já usavam `role="alert"` e `aria-invalid` desde a Fase 1 — não precisaram de mudança nesta fase. Nenhuma auditoria adicional de contraste/labels foi feita nos componentes que já existiam antes da Fase 0 e não foram tocados por nenhum item desta fase.
+
+### Verificação desta fase
+
+- `npx eslint .`: 0 erros (4 warnings pré-existentes de `watch()`, mesmas de todas as fases anteriores).
+- `npx tsc --noEmit` / `npx next build`: limpos, todas as rotas compilando (incluindo depois da correção do bug do popover de ajuda).
+- Testado manualmente no navegador (Playwright ad-hoc, conta `augusto_lordano@hotmail.com`): saudação sem duplicação de e-mail; menu "⋮" com os itens corretos e condicionais (processo com resultado mostra "Ver resultado", processo sem mostra só "Editar dados"); Esc fecha o menu de ações; exclusão completa (confirmação com foco em "Cancelar" → "Excluir" → banner de sucesso → card removido) testada de ponta a ponta contra um processo de teste vazio; menu de perfil abre, edição de nome persiste após reload (via `router.refresh()`); sidebar desktop mostra as 5 etapas + "Resultado" com os indicadores corretos; stepper mobile continua funcionando em `lg:hidden`; popover de ajuda testado em EBITDA — abre por clique (após a correção do bug) e por foco de teclado, fecha com Esc.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogoutButton } from "@/components/logout-button";
+import { PerfilMenu } from "@/components/perfil-menu";
 
 /**
  * Header persistente de todas as páginas autenticadas (dashboard, intake,
@@ -18,9 +18,11 @@ import { LogoutButton } from "@/components/logout-button";
  */
 export function AppShell({
   email,
+  nomeCompleto,
   children,
 }: {
   email?: string | null;
+  nomeCompleto?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -33,14 +35,7 @@ export function AppShell({
           ValuM&amp;A
         </Link>
 
-        {email && (
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-zinc-500 sm:inline">
-              {email}
-            </span>
-            <LogoutButton />
-          </div>
-        )}
+        {email && <PerfilMenu email={email} nomeCompleto={nomeCompleto ?? null} />}
       </header>
 
       <div className="flex flex-1 flex-col">{children}</div>

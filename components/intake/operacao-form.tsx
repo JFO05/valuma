@@ -6,6 +6,7 @@ import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { EquipeCargosFieldset } from "@/components/intake/equipe-cargos-fieldset";
 import { ClientesPrincipaisFieldset } from "@/components/intake/clientes-principais-fieldset";
 import { FornecedoresFieldset } from "@/components/intake/fornecedores-fieldset";
@@ -88,7 +89,10 @@ export function OperacaoForm({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            Concentração dos 3 maiores clientes (% da receita)
+            <span className="flex items-center gap-1">
+              Concentração dos 3 maiores clientes (% da receita)
+              <AjudaPopover campoId="concentracaoClientes" />
+            </span>
             <input
               type="number"
               step="0.01"

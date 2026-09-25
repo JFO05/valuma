@@ -12,6 +12,7 @@ import {
   type FinanceiroFormValues,
 } from "@/lib/intake/schema-financeiro";
 import { useConfirm } from "@/components/confirm-dialog";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
@@ -32,7 +33,7 @@ export function DividasFieldset({
   const { confirm, dialog } = useConfirm();
 
   async function handleRemover(index: number) {
-    if (await confirm("Remover esta dívida? Ela deixará de entrar no cálculo do valuation.")) {
+    if (await confirm("Remover esta dívida? Essa informação deixará de contar no Índice de Prontidão.")) {
       remove(index);
     }
   }
@@ -41,8 +42,9 @@ export function DividasFieldset({
     <fieldset className="flex flex-col gap-4">
       {dialog}
       <div className="flex items-center justify-between">
-        <legend className="text-sm font-semibold">
+        <legend className="flex items-center gap-1 text-sm font-semibold">
           Dívidas e financiamentos
+          <AjudaPopover campoId="dividas" />
         </legend>
         <button
           type="button"

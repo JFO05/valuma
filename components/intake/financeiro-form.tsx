@@ -9,6 +9,7 @@ import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-butt
 import { DreFieldset } from "@/components/intake/dre-fieldset";
 import { DividasFieldset } from "@/components/intake/dividas-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import {
   financeiroSchema,
   parseFinanceiroData,
@@ -100,7 +101,10 @@ export function FinanceiroForm({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            Patrimônio líquido
+            <span className="flex items-center gap-1">
+              Patrimônio líquido
+              <AjudaPopover campoId="patrimonioLiquido" />
+            </span>
             <MoneyInput
               id="patrimonioLiquido"
               control={control}

@@ -26,5 +26,15 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  return <AppShell email={user.email}>{children}</AppShell>;
+  const { data: profile } = await supabase
+    .from("users")
+    .select("nome_completo")
+    .eq("id", user.id)
+    .single();
+
+  return (
+    <AppShell email={user.email} nomeCompleto={profile?.nome_completo ?? null}>
+      {children}
+    </AppShell>
+  );
 }

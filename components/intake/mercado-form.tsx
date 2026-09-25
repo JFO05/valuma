@@ -6,6 +6,7 @@ import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { ConcorrentesFieldset } from "@/components/intake/concorrentes-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
 import {
@@ -61,7 +62,10 @@ export function MercadoForm({
       </fieldset>
 
       <label className="flex max-w-xs flex-col gap-1 text-sm">
-        Tamanho de mercado estimado (TAM), se souber informar
+        <span className="flex items-center gap-1">
+          Tamanho de mercado estimado (TAM), se souber informar
+          <AjudaPopover campoId="tamMercado" />
+        </span>
         <MoneyInput
           control={control}
           name="tamMercado"
@@ -73,8 +77,9 @@ export function MercadoForm({
       </label>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-semibold">
+        <legend className="flex items-center gap-1 text-sm font-semibold">
           Sinergias potenciais para M&amp;A
+          <AjudaPopover campoId="sinergias" />
         </legend>
         <textarea
           {...register("sinergiasPotenciais")}

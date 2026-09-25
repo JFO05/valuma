@@ -6,6 +6,7 @@ import { saveIntakeData } from "@/app/(app)/intake/actions";
 import { uploadDocumento } from "@/lib/intake/upload-documento";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { useConfirm } from "@/components/confirm-dialog";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
 import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
 import { DocumentoListItem } from "@/components/intake/documento-list-item";
@@ -197,22 +198,25 @@ export function DocumentosForm({
         </p>
       )}
 
-      <label className="flex w-fit cursor-pointer flex-col gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-sm dark:border-zinc-700">
-        <span className="font-medium">Clique para anexar arquivos</span>
-        <span className="text-xs text-zinc-500">
-          PDF, DOC/DOCX, XLS/XLSX, JPG ou PNG — até 20 MB por arquivo
-        </span>
-        <input
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-          className="hidden"
-          onChange={(e) => {
-            handleFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
+      <div className="flex items-start gap-1">
+        <label className="flex w-fit cursor-pointer flex-col gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-sm dark:border-zinc-700">
+          <span className="font-medium">Clique para anexar arquivos</span>
+          <span className="text-xs text-zinc-500">
+            PDF, DOC/DOCX, XLS/XLSX, JPG ou PNG — até 20 MB por arquivo
+          </span>
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+            className="hidden"
+            onChange={(e) => {
+              handleFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        <AjudaPopover campoId="documentos" />
+      </div>
 
       {uploads.length > 0 && (
         <ul className="flex flex-col gap-2">

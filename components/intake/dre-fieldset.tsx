@@ -6,6 +6,7 @@ import {
   type UseFormRegister,
 } from "react-hook-form";
 import { MoneyInput } from "@/components/intake/money-input";
+import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import type { FinanceiroFormValues } from "@/lib/intake/schema-financeiro";
 
 const inputClass =
@@ -14,14 +15,15 @@ const inputClass =
 const DRE_CAMPOS: {
   name: keyof FinanceiroFormValues["dre"][number];
   label: string;
+  ajudaId?: string;
 }[] = [
-  { name: "receitaBruta", label: "Receita bruta" },
+  { name: "receitaBruta", label: "Receita bruta", ajudaId: "receitaBruta" },
   { name: "deducoes", label: "Deduções" },
   { name: "receitaLiquida", label: "Receita líquida" },
   { name: "custos", label: "Custos" },
   { name: "lucroBruto", label: "Lucro bruto" },
   { name: "despesasOperacionais", label: "Despesas operacionais" },
-  { name: "ebitda", label: "EBITDA" },
+  { name: "ebitda", label: "EBITDA", ajudaId: "ebitda" },
   { name: "lucroLiquido", label: "Lucro líquido" },
 ];
 
@@ -59,9 +61,12 @@ export function DreFieldset({
           </label>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {DRE_CAMPOS.map(({ name, label }) => (
+            {DRE_CAMPOS.map(({ name, label, ajudaId }) => (
               <label key={name} className="flex flex-col gap-1 text-sm">
-                {label}
+                <span className="flex items-center gap-1">
+                  {label}
+                  {ajudaId && <AjudaPopover campoId={ajudaId} />}
+                </span>
                 <MoneyInput
                   id={name === "ebitda" ? `dre-ebitda-${index}` : undefined}
                   control={control}
