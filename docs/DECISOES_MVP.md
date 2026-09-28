@@ -256,3 +256,28 @@ Não existe rota, página ou componente novo que busque ou recalcule o resultado
 ### Pendências
 
 Sem biblioteca de PDF, o layout impresso segue as regras de paginação padrão do navegador (não há controle fino de quebra de página entre seções) — aceitável para um MVP acadêmico; não foi testado em outros motores além do Chromium (o ambiente de desenvolvimento disponível só tinha esse navegador).
+
+---
+
+## Alternador de tema claro/escuro (fora da numeração das Fases 1–6)
+
+Pedido pontual do usuário, fora do plano de evolução — registrado aqui pelo mesmo motivo de tudo mais neste arquivo: envolveu uma mudança estrutural (estratégia de dark mode do Tailwind) e um bug real encontrado durante a verificação.
+
+### O que mudou
+
+- Antes, o tema escuro só seguia `prefers-color-scheme` (preferência do sistema operacional, sem controle manual). Agora `app/globals.css` declara `@custom-variant dark (&:where(.dark, .dark *));` — o `dark:` do Tailwind passa a reagir à classe `.dark` na tag `<html>`, não mais à media query diretamente.
+- `components/ui/theme-toggle.tsx` (novo): um botão único (não um seletor de 3 opções) que alterna claro/escuro, salvo em `localStorage` (chave `"tema"`). Antes da primeira escolha explícita, segue a preferência do sistema. Usa `useSyncExternalStore` (não `useState` + `useEffect` lendo `localStorage` no mount) — a primeira tentativa usava esse segundo padrão e o lint (`react-hooks/set-state-in-effect`, regra do React Compiler) reprovou por chamar `setState` diretamente dentro de um efeito; `useSyncExternalStore` é a ferramenta correta para um valor que vem de uma fonte externa ao React (localStorage/`matchMedia`) e evita esse problema por construção, incluindo o `getServerSnapshot` que evita descompasso entre o HTML do servidor e a primeira renderização no cliente.
+- Um `<script>` síncrono no início de `<body>` (`app/layout.tsx`) aplica a classe `.dark` antes da primeira pintura, lendo a mesma chave de `localStorage` — sem isso, a página sempre abriria no tema claro por um instante antes do React corrigir.
+- Botão adicionado nos três cabeçalhos existentes no app: `components/app-shell.tsx` (área autenticada), `app/(auth)/layout.tsx` (login/cadastro/etc.) e `app/page.tsx` (landing pública) — não foi criado um cabeçalho novo só para isso, o botão foi encaixado nos três já existentes.
+
+### Bug encontrado e corrigido: impressão/PDF com tema escuro ativado
+
+A Fase 5 (PDF) já forçava fundo e texto claros no `@media print`, mas isso foi implementado testando só com o tema claro ativo (única opção que existia até aqui). Ao testar o PDF com o tema escuro ativado antes de imprimir, o card da "Estimativa preliminar de valuation" (`components/resultado/valuation-destaque.tsx`, fundo `dark:bg-zinc-900`) ficou **ilegível** — o CSS de impressão só forçava a cor do texto, não o fundo, e o fundo escuro daquele card (uma classe `dark:bg-*` comum, não específica desse componente) continuava aplicado, resultando em texto escuro sobre fundo escuro.
+
+Corrigido na raiz, não card por card: `components/theme-impressao-clara.tsx` (novo) escuta `beforeprint`/`afterprint` e **remove de verdade a classe `.dark`** da tag `<html>` antes de imprimir (devolvendo depois) — como todas as variantes `dark:` do Tailwind agora dependem dessa classe, removê-la desliga todas de uma vez, igual ao usuário nunca ter ligado o tema escuro. O bloco de CSS do `@media print` em `globals.css` foi simplificado para servir só de reforço (`--background`/`--foreground` e fundo do `body`), já que a correção real é essa remoção de classe em JS.
+
+### Verificação
+
+- `npx eslint .`, `npx tsc --noEmit`, `npx next build`: todos limpos (mesmos 4 warnings pré-existentes de `watch()`).
+- Testado com Playwright: clique no botão alterna a classe `.dark` e persiste em `localStorage`; após reload, o tema salvo se mantém (sem piscar tema errado, confirmado visualmente); a página de login e o dashboard refletem o mesmo tema salvo (mesma chave de `localStorage`, compartilhada entre as três áreas do app).
+- Testado o bug do PDF em tema escuro especificamente: um PDF real gerado via `page.pdf()` (motor de impressão do Chromium) com o tema escuro ativado ficou **idêntico** ao gerado em tema claro (mesmos números, todo o texto legível); confirmado também que a classe `.dark` é restaurada corretamente na tela depois da impressão (o usuário não perde o tema escuro que tinha escolhido só por ter imprimido/exportado um PDF).

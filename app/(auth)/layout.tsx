@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 /**
  * Layout compartilhado por login, signup, verify-email, forgot-password e
@@ -14,13 +15,14 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="px-6 py-4">
+      <header className="flex items-center justify-between px-6 py-4">
         <Link
           href="/"
           className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50"
         >
           ValuM&amp;A
         </Link>
+        <ThemeToggle />
       </header>
       <div className="flex flex-1 flex-col">{children}</div>
     </div>

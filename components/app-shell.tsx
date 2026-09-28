@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PerfilMenu } from "@/components/perfil-menu";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 /**
  * Header persistente de todas as páginas autenticadas (dashboard, intake,
@@ -35,7 +36,10 @@ export function AppShell({
           ValuM&amp;A
         </Link>
 
-        {email && <PerfilMenu email={email} nomeCompleto={nomeCompleto ?? null} />}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {email && <PerfilMenu email={email} nomeCompleto={nomeCompleto ?? null} />}
+        </div>
       </header>
 
       <div className="flex flex-1 flex-col">{children}</div>

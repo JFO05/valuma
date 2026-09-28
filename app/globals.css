@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 /*
+ * Tema claro/escuro escolhido manualmente (components/ui/theme-toggle.tsx),
+ * não mais só pelo `prefers-color-scheme` do sistema — por isso o `dark:`
+ * do Tailwind passa a reagir à classe `.dark` na tag <html> (aplicada por
+ * um script síncrono em app/layout.tsx, antes da primeira pintura, e depois
+ * mantida pelo próprio componente do botão) em vez da media query.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
  * Identidade visual do ValuM&A: tinta (ink) grafite-azulada para marca e
  * texto de maior peso, e um dourado envelhecido (accent) usado com
  * moderação — em avaliação de empresas, ouro é o vocabulário visual de
@@ -27,14 +36,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-ink: #e8ecf5;
-    --color-accent: #c9a24a;
-    --color-accent-contrast: #101a2e;
-  }
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --color-ink: #e8ecf5;
+  --color-accent: #c9a24a;
+  --color-accent-contrast: #101a2e;
 }
 
 body {
@@ -49,21 +56,21 @@ body {
 }
 
 /*
- * Fase 5 (PDF do resultado, D4: window.print() sem dependência nova). Força
- * o tema claro na impressão independente de `prefers-color-scheme` — um
- * relatório para salvar/imprimir não deve sair com fundo escuro só porque o
- * sistema operacional do usuário está em modo escuro. O restante do controle
- * de visibilidade (o que aparece ou não no PDF) fica nas classes
- * `print:hidden` já usadas nos componentes da tela de resultado.
+ * Fase 5 (PDF do resultado, D4: window.print() sem dependência nova). A
+ * correção principal do tema escuro na impressão é em JS, não aqui:
+ * components/theme-impressao-clara.tsx remove de verdade a classe `.dark`
+ * da tag <html> no evento `beforeprint` (e devolve depois) — como o `dark:`
+ * do Tailwind reage a essa classe (`@custom-variant dark` acima), isso
+ * desliga TODAS as variantes escuras de uma vez. Uma correção só em CSS
+ * (ex.: forçar `color` sem tocar em `background-color`) não bastava: um
+ * contêiner com fundo escuro por `dark:bg-*` mais texto forçado a ficar
+ * escuro por CSS de impressão vira texto ilegível sobre fundo escuro —
+ * problema real, encontrado e confirmado visualmente durante a verificação
+ * desta função, antes da correção em JS.
  *
- * A cor do texto (`color`) é forçada em todos os elementos porque as classes
- * `dark:text-*` do Tailwind reagem a `prefers-color-scheme`, não a esta
- * troca de tema — sem isso, texto claro (pensado para fundo escuro) poderia
- * ficar ilegível sobre o fundo branco forçado acima, se o sistema
- * operacional estiver em modo escuro no momento da impressão. Fundos e
- * bordas não são forçados: no pior caso (SO em modo escuro), algum
- * contêiner mantém uma cor de fundo/borda escura — só um efeito estético,
- * não um problema de legibilidade.
+ * Este bloco de CSS fica só como reforço (o restante do controle de
+ * visibilidade — o que aparece ou não no PDF — fica nas classes
+ * `print:hidden` já usadas nos componentes da tela de resultado):
  */
 @media print {
   :root {
@@ -73,9 +80,5 @@ body {
 
   body {
     background: white;
-  }
-
-  * {
-    color: #171717 !important;
   }
 }

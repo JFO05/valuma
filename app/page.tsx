@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -18,12 +19,15 @@ export default async function Home() {
         <span className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50">
           ValuM&amp;A
         </span>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
-        >
-          Entrar
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            href="/login"
+            className="text-sm font-medium text-zinc-600 underline dark:text-zinc-400"
+          >
+            Entrar
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-8 px-6 py-16 text-center">
