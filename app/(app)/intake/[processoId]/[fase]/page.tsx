@@ -65,15 +65,20 @@ export default async function IntakeFasePage({
   const fasesComPendencia = new Set(pendencias.map((p) => p.fase));
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 gap-8 p-8">
-      <IntakeSidebar
-        processoId={processoId}
-        faseAtual={fase}
-        fasesComDados={fasesComDados}
-        fasesComPendencia={fasesComPendencia}
-      />
+    <div className="flex w-full flex-1 gap-16">
+      {/* A sidebar fica junto da borda esquerda da tela (não centralizada
+          junto com o conteúdo como antes) — layout de duas colunas mais
+          "limpo", com o conteúdo centralizado só no espaço que sobra. */}
+      <div className="hidden shrink-0 pl-8 pt-8 lg:block">
+        <IntakeSidebar
+          processoId={processoId}
+          faseAtual={fase}
+          fasesComDados={fasesComDados}
+          fasesComPendencia={fasesComPendencia}
+        />
+      </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-8">
+      <div className="mx-auto flex min-w-0 max-w-3xl flex-1 flex-col gap-8 p-8">
         {/* Em telas com sidebar (lg+) o "← Dashboard" já está nela; abaixo
             disso, sem a sidebar visível, precisa aparecer aqui também. */}
         <Link href="/dashboard" className="text-sm text-zinc-500 underline lg:hidden">
