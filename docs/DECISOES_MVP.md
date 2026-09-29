@@ -281,3 +281,11 @@ Corrigido na raiz, não card por card: `components/theme-impressao-clara.tsx` (n
 - `npx eslint .`, `npx tsc --noEmit`, `npx next build`: todos limpos (mesmos 4 warnings pré-existentes de `watch()`).
 - Testado com Playwright: clique no botão alterna a classe `.dark` e persiste em `localStorage`; após reload, o tema salvo se mantém (sem piscar tema errado, confirmado visualmente); a página de login e o dashboard refletem o mesmo tema salvo (mesma chave de `localStorage`, compartilhada entre as três áreas do app).
 - Testado o bug do PDF em tema escuro especificamente: um PDF real gerado via `page.pdf()` (motor de impressão do Chromium) com o tema escuro ativado ficou **idêntico** ao gerado em tema claro (mesmos números, todo o texto legível); confirmado também que a classe `.dark` é restaurada corretamente na tela depois da impressão (o usuário não perde o tema escuro que tinha escolhido só por ter imprimido/exportado um PDF).
+
+---
+
+## Card do processo clicável no dashboard (fora da numeração das Fases 1–6)
+
+Pedido pontual do usuário: antes, a única forma de abrir um processo era pelo menu "⋮" — o card em si não reagia a clique. `components/dashboard/processos-lista.tsx` ganhou um `<Link>` posicionado em `absolute inset-0` sobre o `<li>` inteiro (técnica de "stretched link": um link invisível do tamanho do card inteiro, com `aria-label` descritivo em vez de texto visível duplicado), levando para `/processos/{id}/resultado` quando o processo já tem resultado gerado, ou para `/intake/{id}/perfil` (continuar preenchimento) quando ainda não tem. O menu "⋮" continua funcionando normalmente porque fica num contêiner com `z-index` mais alto — um clique nele acerta o botão do menu, não o link invisível por baixo.
+
+Verificado com Playwright: clicar em qualquer ponto de um card com resultado navega para o resultado; clicar num card "Em andamento" navega para o intake; clicar no botão "⋮" continua abrindo o menu (incluindo "Excluir processo") sem disparar a navegação do card. `npx eslint .`, `npx tsc --noEmit` e `npx next build` limpos.

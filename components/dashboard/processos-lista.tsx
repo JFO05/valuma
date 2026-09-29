@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { Menu } from "@/components/ui/menu";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -74,47 +75,69 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
       )}
 
       <ul className="flex flex-col gap-2">
-        {processos.map((processo) => (
-          <li
-            key={processo.id}
-            className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-          >
-            <div className="flex flex-col gap-1">
-              <p className="font-medium">{processo.nomeEmpresa}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={processo.status} />
-                {!processo.completo && (
-                  <span className="text-xs text-zinc-500">
-                    {processo.preenchidas} de {FASES_INTAKE.length} etapas
-                    preenchidas
-                  </span>
-                )}
-                <span className="text-xs text-zinc-400">
-                  Atualizado em{" "}
-                  {new Date(processo.atualizadoEm).toLocaleDateString("pt-BR")}
-                </span>
-              </div>
-            </div>
+        {processos.map((processo) => {
+          // Card inteiro clicável (não só o menu "⋮"): vai direto pro
+          // resultado quando já existe um, ou continua o preenchimento
+          // quando ainda não existe — mesmo destino que o item
+          // correspondente do menu já usava, só acessível de mais um jeito.
+          const destino = processo.completo
+            ? `/processos/${processo.id}/resultado`
+            : `/intake/${processo.id}/perfil`;
 
-            <Menu
-              label={`Mais ações de ${processo.nomeEmpresa}`}
-              itens={[
-                {
-                  label: processo.completo ? "Editar dados" : "Continuar preenchimento",
-                  href: `/intake/${processo.id}/perfil`,
-                },
-                ...(processo.completo
-                  ? [{ label: "Ver resultado", href: `/processos/${processo.id}/resultado` }]
-                  : []),
-                {
-                  label: "Excluir processo",
-                  destrutivo: true,
-                  onClick: () => handleExcluir(processo),
-                },
-              ]}
-            />
-          </li>
-        ))}
+          return (
+            <li
+              key={processo.id}
+              className="relative flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            >
+              <Link
+                href={destino}
+                className="absolute inset-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink dark:focus-visible:outline-accent"
+                aria-label={
+                  processo.completo
+                    ? `Ver resultado de ${processo.nomeEmpresa}`
+                    : `Continuar preenchimento de ${processo.nomeEmpresa}`
+                }
+              />
+
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">{processo.nomeEmpresa}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge status={processo.status} />
+                  {!processo.completo && (
+                    <span className="text-xs text-zinc-500">
+                      {processo.preenchidas} de {FASES_INTAKE.length} etapas
+                      preenchidas
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-400">
+                    Atualizado em{" "}
+                    {new Date(processo.atualizadoEm).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="relative z-10">
+                <Menu
+                  label={`Mais ações de ${processo.nomeEmpresa}`}
+                  itens={[
+                    {
+                      label: processo.completo ? "Editar dados" : "Continuar preenchimento",
+                      href: `/intake/${processo.id}/perfil`,
+                    },
+                    ...(processo.completo
+                      ? [{ label: "Ver resultado", href: `/processos/${processo.id}/resultado` }]
+                      : []),
+                    {
+                      label: "Excluir processo",
+                      destrutivo: true,
+                      onClick: () => handleExcluir(processo),
+                    },
+                  ]}
+                />
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
