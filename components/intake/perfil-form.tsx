@@ -57,7 +57,7 @@ export function PerfilForm({
 
   // Depois que o jsonb da etapa é salvo: sincroniza a cópia normalizada de
   // sócios em public.partners, e atualiza processos.nome_empresa com a
-  // razão social (esse campo começa como "Empresa sem nome" e não muda
+  // razão social (esse campo começa como "Novo processo — DD/MM" e não muda
   // sozinho — ver app/intake/perfil-actions.ts).
   useEffect(() => {
     if (status !== "salvo") return;

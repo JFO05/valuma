@@ -33,7 +33,10 @@ export function AutosaveStatusIndicator({
 
   if (status === "salvo") {
     return (
-      <p className="text-sm text-zinc-500" role="status">
+      <p className="flex items-center gap-1 text-sm text-zinc-500" role="status">
+        <span aria-hidden="true" className="text-green-600 dark:text-green-500">
+          ✓
+        </span>
         {ultimoSalvamento
           ? `Salvo às ${formatarHora(ultimoSalvamento)}`
           : "Todas as alterações salvas"}

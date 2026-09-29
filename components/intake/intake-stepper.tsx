@@ -59,6 +59,20 @@ export function IntakeStepper({
           </li>
         );
       })}
+
+      {/* Atalho pro Resultado (mesmo que a sidebar desktop já tem — sem
+          isso, no mobile o único caminho até lá era voltar ao dashboard e
+          abrir o menu "⋮" do card). Nunca desabilitado: quem só quer
+          conferir o que já existe não deveria ficar bloqueado por
+          pendências. */}
+      <li>
+        <Link
+          href={`/processos/${processoId}/resultado`}
+          className="flex items-center gap-2 rounded-full border border-dashed border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300"
+        >
+          Resultado
+        </Link>
+      </li>
     </ol>
   );
 }

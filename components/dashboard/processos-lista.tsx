@@ -8,6 +8,7 @@ import { Menu } from "@/components/ui/menu";
 import { useConfirm } from "@/components/confirm-dialog";
 import { excluirProcesso } from "@/app/(app)/dashboard/actions";
 import { FASES_INTAKE } from "@/lib/intake/fases";
+import { formatBRL } from "@/lib/format";
 
 export interface ProcessoResumo {
   id: string;
@@ -16,6 +17,8 @@ export interface ProcessoResumo {
   atualizadoEm: string;
   preenchidas: number;
   completo: boolean;
+  valuationFinal: number | null;
+  indiceGeral: number | null;
 }
 
 /**
@@ -114,6 +117,23 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
                     {new Date(processo.atualizadoEm).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
+
+                {/* Prévia do resultado (revisão de UX, fora da numeração das
+                    Fases 1-6) — deliberadamente pequena e no mesmo tom de
+                    cinza do resto do card (não um número em destaque), e com
+                    "preliminar" explícito: o card não repete o disclaimer
+                    inteiro da tela de resultado, mas evita a leitura de
+                    "nota de qualidade da empresa" que o Índice de Prontidão
+                    trabalha pra afastar desde a Fase 2. Só aparece quando
+                    existe mesmo um resultado gerado (não usa `completo`, que
+                    é sobre o intake, não sobre o resultado). */}
+                {processo.valuationFinal !== null && processo.indiceGeral !== null && (
+                  <p className="text-xs text-zinc-500">
+                    Estimativa preliminar: {formatBRL(processo.valuationFinal)}
+                    {" · "}
+                    Prontidão: {processo.indiceGeral.toFixed(0)}%
+                  </p>
+                )}
               </div>
 
               <div className="relative z-10">

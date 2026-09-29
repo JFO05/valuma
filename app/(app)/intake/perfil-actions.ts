@@ -65,8 +65,8 @@ type AtualizarNomeEmpresaResult =
   | { success: false; error: string };
 
 /**
- * public.processos.nome_empresa começa como "Empresa sem nome" (definido em
- * app/intake/page.tsx na criação do processo) e nunca é atualizado sozinho —
+ * public.processos.nome_empresa começa como "Novo processo — DD/MM" (definido
+ * em app/intake/page.tsx na criação do processo) e nunca é atualizado sozinho —
  * a razão social só existe no jsonb da fase "perfil". Sincroniza os dois
  * para que a lista de processos do dashboard mostre o nome real assim que o
  * usuário preenche o Perfil. Chamada pelo PerfilForm junto com syncPartners.
