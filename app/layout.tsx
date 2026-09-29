@@ -23,6 +23,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // O script logo abaixo adiciona a classe `dark` a esta tag ANTES do
+      // React hidratar (de propósito, pra não piscar o tema errado) — sem
+      // isso, o React compara o className do servidor (sem "dark") com o
+      // do DOM real (já com "dark") e trata como um bug de hidratação.
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         {/* Aplica a classe `dark` antes da primeira pintura, lendo a mesma
