@@ -75,12 +75,20 @@ export default async function ResultadoPage({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 p-8">
       <div>
-        <Link
-          href={`/intake/${processoId}/perfil`}
-          className="print:hidden text-sm text-zinc-500 underline"
-        >
-          ← Editar dados do intake
-        </Link>
+        <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-1">
+          <Link
+            href="/dashboard"
+            className="text-sm text-zinc-500 underline"
+          >
+            ← Voltar para o Dashboard
+          </Link>
+          <Link
+            href={`/intake/${processoId}/perfil`}
+            className="text-sm text-zinc-500 underline"
+          >
+            ← Editar dados do intake
+          </Link>
+        </div>
         <p className="mt-2 text-sm text-zinc-500">{processo.nome_empresa}</p>
         <h1 className="text-2xl font-semibold">Resultado do Valuation</h1>
       </div>
