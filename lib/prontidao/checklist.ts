@@ -326,6 +326,24 @@ export interface PendenciaProntidao {
   label: string;
 }
 
+/**
+ * Id do item → id de DOM do campo correspondente no formulário, pra "O que
+ * ainda falta" (Fase 3) e a nova lista por etapa poderem linkar direto pro
+ * campo (revisão de UX, fora da numeração das Fases 1-6). Para quase todo
+ * item é a mesma string (o `id` do item já é usado literalmente como `id`
+ * do input/fieldset correspondente nos componentes de formulário) — exceto
+ * os 5 itens documentais, que não têm campo individual no DOM (é uma única
+ * área de upload, sem um campo "tipo de documento" no schema — ver
+ * `itensDocumentais` acima): todos apontam para o mesmo id da área de
+ * upload.
+ */
+export function ancoraDoItemProntidao(
+  item: Pick<PendenciaProntidao, "id" | "dimensao">,
+): string {
+  if (item.dimensao === "documental") return "documentos.arquivos";
+  return item.id;
+}
+
 export interface NotaDimensao {
   nota: number;
   validos: number;

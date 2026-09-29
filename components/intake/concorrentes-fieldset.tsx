@@ -17,10 +17,12 @@ const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
 
 export function ConcorrentesFieldset({
+  id,
   control,
   register,
   errors,
 }: {
+  id?: string;
   control: Control<MercadoFormValues>;
   register: UseFormRegister<MercadoFormValues>;
   errors: FieldErrors<MercadoFormValues>;
@@ -31,7 +33,7 @@ export function ConcorrentesFieldset({
   });
 
   return (
-    <fieldset className="flex flex-col gap-4">
+    <fieldset id={id} className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <legend className="text-sm font-semibold">Concorrentes</legend>
         <button

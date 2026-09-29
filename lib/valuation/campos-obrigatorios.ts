@@ -67,7 +67,10 @@ export function verificarCamposObrigatorios(
   if (!anoBase || anoBase.ebitda === 0) {
     pendencias.push({
       fase: "financeiro",
-      campo: "dre-ebitda-0",
+      // Mesma convenção de id usada pelo checklist do Índice de Prontidão
+      // (lib/prontidao/checklist.ts) para o mesmo campo — um único id de DOM
+      // por campo, não duas convenções diferentes disputando o mesmo input.
+      campo: "financeiro.dre.0.ebitda",
       label: "EBITDA de ao menos um ano no DRE",
     });
   }
@@ -75,7 +78,7 @@ export function verificarCamposObrigatorios(
   if (!patrimonioLiquidoInformado(dados)) {
     pendencias.push({
       fase: "financeiro",
-      campo: "patrimonioLiquido",
+      campo: "financeiro.balanco.patrimonioLiquido",
       label: "Patrimônio líquido",
     });
   }

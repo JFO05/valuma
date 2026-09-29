@@ -49,11 +49,17 @@ export function MercadoForm({
 
   return (
     <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-8">
-      <ConcorrentesFieldset control={control} register={register} errors={errors} />
+      <ConcorrentesFieldset
+        id="mercado.concorrentes"
+        control={control}
+        register={register}
+        errors={errors}
+      />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-semibold">Posicionamento</legend>
         <textarea
+          id="mercado.posicionamento"
           {...register("posicionamento")}
           rows={4}
           placeholder="Proposta de valor, diferenciação..."
@@ -67,6 +73,7 @@ export function MercadoForm({
           <AjudaPopover campoId="tamMercado" />
         </span>
         <MoneyInput
+          id="mercado.tamMercado"
           control={control}
           name="tamMercado"
           className={inputClass}
@@ -82,6 +89,7 @@ export function MercadoForm({
           <AjudaPopover campoId="sinergias" />
         </legend>
         <textarea
+          id="mercado.sinergiasPotenciais"
           {...register("sinergiasPotenciais")}
           rows={4}
           placeholder="Ex: sinergias de produto, geografia, base de clientes..."

@@ -15,10 +15,12 @@ const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
 
 export function EquipeCargosFieldset({
+  id,
   control,
   register,
   errors,
 }: {
+  id?: string;
   control: Control<OperacaoFormValues>;
   register: UseFormRegister<OperacaoFormValues>;
   errors: FieldErrors<OperacaoFormValues>;
@@ -29,7 +31,7 @@ export function EquipeCargosFieldset({
   });
 
   return (
-    <div className="flex flex-col gap-3">
+    <div id={id} className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Principais cargos/áreas</p>
         <button

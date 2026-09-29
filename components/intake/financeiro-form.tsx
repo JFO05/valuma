@@ -67,6 +67,7 @@ export function FinanceiroForm({
           <label className="flex flex-col gap-1 text-sm">
             Ativo total
             <MoneyInput
+              id="financeiro.balanco.ativoTotal"
               control={control}
               name="balanco.ativoTotal"
               className={inputClass}
@@ -76,6 +77,7 @@ export function FinanceiroForm({
           <label className="flex flex-col gap-1 text-sm">
             Ativo circulante
             <MoneyInput
+              id="financeiro.balanco.ativoCirculante"
               control={control}
               name="balanco.ativoCirculante"
               className={inputClass}
@@ -85,6 +87,7 @@ export function FinanceiroForm({
           <label className="flex flex-col gap-1 text-sm">
             Passivo total
             <MoneyInput
+              id="financeiro.balanco.passivoTotal"
               control={control}
               name="balanco.passivoTotal"
               className={inputClass}
@@ -94,6 +97,7 @@ export function FinanceiroForm({
           <label className="flex flex-col gap-1 text-sm">
             Passivo circulante
             <MoneyInput
+              id="financeiro.balanco.passivoCirculante"
               control={control}
               name="balanco.passivoCirculante"
               className={inputClass}
@@ -106,7 +110,7 @@ export function FinanceiroForm({
               <AjudaPopover campoId="patrimonioLiquido" />
             </span>
             <MoneyInput
-              id="patrimonioLiquido"
+              id="financeiro.balanco.patrimonioLiquido"
               control={control}
               name="balanco.patrimonioLiquido"
               className={inputClass}

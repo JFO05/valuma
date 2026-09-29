@@ -68,7 +68,7 @@ export function DreFieldset({
                   {ajudaId && <AjudaPopover campoId={ajudaId} />}
                 </span>
                 <MoneyInput
-                  id={name === "ebitda" ? `dre-ebitda-${index}` : undefined}
+                  id={`financeiro.dre.${index}.${name}`}
                   control={control}
                   name={`dre.${index}.${name}`}
                   className={inputClass}

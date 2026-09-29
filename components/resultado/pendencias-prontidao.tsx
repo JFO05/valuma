@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FASE_LABELS, type FaseIntake } from "@/lib/intake/fases";
-import type { ResultadoProntidao } from "@/lib/prontidao/checklist";
+import { ancoraDoItemProntidao, type ResultadoProntidao } from "@/lib/prontidao/checklist";
 
 const ROTULO_DIMENSAO: Record<keyof ResultadoProntidao["dimensoes"], string> = {
   financeiro: "Financeiro",
@@ -62,7 +62,7 @@ export function PendenciasProntidao({
             ({dimensao.validos} preenchidas)
           </span>
           <Link
-            href={`/intake/${processoId}/${FASE_DIMENSAO[dimensao.chave]}`}
+            href={`/intake/${processoId}/${FASE_DIMENSAO[dimensao.chave]}#${ancoraDoItemProntidao(dimensao.pendencias[0])}`}
             className="w-fit shrink-0 text-ink underline dark:text-accent"
           >
             Completar em {FASE_LABELS[FASE_DIMENSAO[dimensao.chave]]}

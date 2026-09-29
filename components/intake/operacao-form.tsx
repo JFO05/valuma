@@ -56,6 +56,7 @@ export function OperacaoForm({
         <label className="flex max-w-xs flex-col gap-1 text-sm">
           Número total de funcionários
           <input
+            id="operacao.numeroFuncionariosTotal"
             type="number"
             {...register("numeroFuncionariosTotal", { valueAsNumber: true })}
             className={inputClass}
@@ -67,7 +68,12 @@ export function OperacaoForm({
           )}
         </label>
 
-        <EquipeCargosFieldset control={control} register={register} errors={errors} />
+        <EquipeCargosFieldset
+          id="operacao.cargosEquipe"
+          control={control}
+          register={register}
+          errors={errors}
+        />
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
@@ -77,6 +83,7 @@ export function OperacaoForm({
           <label className="flex flex-col gap-1 text-sm">
             Número de clientes ativos
             <input
+              id="operacao.numeroClientesAtivos"
               type="number"
               {...register("numeroClientesAtivos", { valueAsNumber: true })}
               className={inputClass}
@@ -94,6 +101,7 @@ export function OperacaoForm({
               <AjudaPopover campoId="concentracaoClientes" />
             </span>
             <input
+              id="operacao.concentracaoTop3Clientes"
               type="number"
               step="0.01"
               {...register("concentracaoTop3Clientes", { valueAsNumber: true })}
@@ -108,19 +116,26 @@ export function OperacaoForm({
         </div>
 
         <ClientesPrincipaisFieldset
+          id="operacao.clientesPrincipais"
           control={control}
           register={register}
           errors={errors}
         />
       </fieldset>
 
-      <FornecedoresFieldset control={control} register={register} errors={errors} />
+      <FornecedoresFieldset
+        id="operacao.fornecedoresPrincipais"
+        control={control}
+        register={register}
+        errors={errors}
+      />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-semibold">
           Processos operacionais
         </legend>
         <textarea
+          id="operacao.processosOperacionais"
           {...register("processosOperacionais")}
           rows={4}
           placeholder="Descreva brevemente os principais processos/operações do negócio..."

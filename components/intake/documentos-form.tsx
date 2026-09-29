@@ -198,7 +198,7 @@ export function DocumentosForm({
         </p>
       )}
 
-      <div className="flex items-start gap-1">
+      <div id="documentos.arquivos" className="flex items-start gap-1">
         <label className="flex w-fit cursor-pointer flex-col gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-sm dark:border-zinc-700">
           <span className="font-medium">Clique para anexar arquivos</span>
           <span className="text-xs text-zinc-500">

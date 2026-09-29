@@ -39,7 +39,7 @@ export function DividasFieldset({
   }
 
   return (
-    <fieldset className="flex flex-col gap-4">
+    <fieldset id="financeiro.dividas" className="flex flex-col gap-4">
       {dialog}
       <div className="flex items-center justify-between">
         <legend className="flex items-center gap-1 text-sm font-semibold">

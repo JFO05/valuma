@@ -44,6 +44,22 @@
   --color-accent-contrast: #101a2e;
 }
 
+/* Rolagem suave pros links de âncora "#campo" (pendências do Índice de
+   Prontidão apontando pro campo exato) — só quando o usuário não pediu
+   menos movimento na tela. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Sem isso, um link de âncora deixa o campo-alvo colado na borda de cima da
+   tela, cortando o próprio rótulo do campo (que fica visualmente acima do
+   input) — a margem dá um respiro pra rótulo + input aparecerem juntos. */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
