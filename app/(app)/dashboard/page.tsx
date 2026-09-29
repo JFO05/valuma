@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FASES_INTAKE } from "@/lib/intake/fases";
 import { ProcessosLista } from "@/components/dashboard/processos-lista";
+import { Reveal } from "@/components/ui/reveal";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -86,22 +87,29 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 p-8">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-semibold">Bem-vindo, {nomeParaSaudacao}!</h1>
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-12 px-6 py-16">
+      <Reveal className="flex flex-col items-center gap-3 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-zinc-50">
+          Bem-vindo, {nomeParaSaudacao}!
+        </h1>
 
         <Link
           href="/intake"
-          className="mt-2 rounded bg-ink px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+          className="group mt-3 flex items-center gap-3 rounded-full bg-ink py-1.5 pl-6 pr-1.5 text-sm font-medium text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] dark:bg-white dark:text-black"
         >
           Novo Valuation
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 dark:bg-black/10">
+            +
+          </span>
         </Link>
-      </div>
+      </Reveal>
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Meus processos</h2>
+      <Reveal delayMs={100} className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold text-ink dark:text-zinc-50">
+          Meus processos
+        </h2>
         <ProcessosLista processos={processosResumo} />
-      </div>
+      </Reveal>
     </div>
   );
 }

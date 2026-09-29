@@ -66,6 +66,28 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/*
+ * Camada "premium" (transformação visual pontual, fora da numeração das
+ * Fases 1-6) — eleva a execução (sombras/hairlines mais refinadas, curva de
+ * easing consistente) mantendo a paleta grafite+dourado já estabelecida.
+ * Aplicada por enquanto só nas telas "de vitrine" (landing, auth, dashboard)
+ * — os formulários de intake e a tela de resultado ficam com o tratamento
+ * atual por ora, para não arriscar a lógica de autosave/impressão já testada
+ * numa mesma passada. Sem biblioteca nova: sombra e easing são só CSS: a
+ * animação de entrada usa IntersectionObserver (components/ui/reveal.tsx).
+ */
+.shadow-premium {
+  box-shadow:
+    0 1px 2px rgba(16, 26, 46, 0.04),
+    0 20px 40px -16px rgba(16, 26, 46, 0.18);
+}
+
+:root.dark .shadow-premium {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 20px 48px -16px rgba(0, 0, 0, 0.6);
+}
+
 /* Dígitos com largura fixa para valores financeiros alinharem em colunas/cards. */
 .tabular-nums {
   font-variant-numeric: tabular-nums;

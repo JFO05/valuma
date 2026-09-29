@@ -322,3 +322,37 @@ Retomando a sugestão original da revisão de UX: "O que ainda falta" (Fase 3) e
 - `npx eslint .`, `npx tsc --noEmit`, `npx next build`: limpos.
 - `npx tsx scripts/testar-prontidao.ts`: as 20 verificações continuam passando (a renomeação dos ids de DOM não mexeu nos ids dos itens do checklist, que são o que o script verifica).
 - Testado com Playwright: a lista de pendências da etapa Financeiro mostrou exatamente os 22 campos vazios (excluindo corretamente EBITDA, Patrimônio Líquido e a dívida já preenchidos); clicar em cada link rolou a página até o campo certo, com rótulo e input visíveis (não cortados); os 2 links de pendência do DEF-01 (EBITDA e Patrimônio Líquido, na tela de "Gerar Resultado" bloqueado) continuam funcionando com os ids renomeados.
+
+---
+
+## Transformação visual "premium" — primeira leva (fora da numeração das Fases 1–6)
+
+Pedido explícito do usuário: elevar a execução visual do app ("moderno, profissional, foge do padrão"), usando como referência estrutural o skill instalado `high-end-visual-design`. Decisões alinhadas antes de começar:
+- **Identidade mantida**: a paleta grafite (`--color-ink`) + dourado (`--color-accent`) já documentada continua sendo a marca — o skill contribui estrutura (cards, motion, ritmo espacial), não paleta.
+- **Sem biblioteca nova**: o skill sugere Framer Motion para as animações; implementado em vez disso com CSS puro (`transition` + `cubic-bezier` customizado) e `IntersectionObserver`, respeitando a regra do projeto de não instalar nada sem aprovação. Ícones "ultra-light" sugeridos pelo skill (Phosphor/Remix) também não foram instalados — mantidos os glifos simples já usados (setas, "+", unicode). A fonte Geist já usada pelo projeto é uma das opções que o próprio skill já aceita como "premium".
+- **Escopo desta leva**: landing page, cabeçalho de autenticação + tela de login, dashboard (saudação, CTA, cards de processo) e o cabeçalho compartilhado (`app-shell.tsx`). **Deliberadamente não tocado nesta leva**: os 5 formulários de intake e a tela de resultado — são telas densas em dados com lógica sensível já testada (autosave, âncoras de campo, impressão da Fase 5); alterá-las exige mais cuidado e fica para uma leva seguinte, após o usuário revisar esta primeira.
+
+### O que foi construído
+
+- `components/ui/reveal.tsx` (novo) — fade-up ao entrar na tela via `IntersectionObserver`, só `transform`/`opacity` (sem `blur` animado — o skill sugere blur, mas contradiz sua própria regra de performance de "só transform/opacity"; optei pela regra de performance). Respeita `prefers-reduced-motion` (conteúdo já nasce visível, sem animação).
+- `components/ui/premium-card.tsx` (novo) — card "double-bezel" (invólucro externo + núcleo interno com raios concêntricos, técnica do skill), com as cores do projeto.
+- `.shadow-premium` (novo, `globals.css`) — sombra difusa mais sofisticada que o `shadow` padrão do Tailwind, com variante para tema escuro.
+- Landing page (`app/page.tsx`) reformulada: eyebrow tag, tipografia maior, botões em pílula com ícone aninhado ("button-in-button", técnica do skill), cards de recurso com `PremiumCard` + `Reveal` escalonado. Também corrigido um texto desatualizado: a descrição do índice ainda dizia "financeiro, operação, mercado e **jurídico**" — nome antigo, trocado por "operacional" e "documental" (terminologia da Fase 2/3) desde a Fase 2, nunca corrigido nessa página.
+- `app/(auth)/layout.tsx` + `app/(auth)/login/page.tsx`: cabeçalho com hairline refinada; card de login em `PremiumCard` + `Reveal`, inputs com cantos maiores, botão em pílula — lógica de autenticação (`handleSubmit`, estados) inalterada.
+- Dashboard (`app/(app)/dashboard/page.tsx`, `components/dashboard/processos-lista.tsx`): saudação com `Reveal`, CTA "Novo Valuation" em pílula com ícone "+" aninhado, cards de processo com cantos maiores, hairline mais sutil e elevação (`shadow-premium` + leve translação) no hover — a estrutura funcional dos cards (link "esticado" cobrindo o card inteiro + menu "⋮" em `z-10` por cima, ambos construídos numa revisão de UX anterior) foi mantida exatamente igual, só as classes visuais mudaram.
+- `components/app-shell.tsx`: hairline do cabeçalho compartilhado (dashboard/intake/resultado) alinhada ao mesmo tom mais sutil usado nas telas novas.
+
+### Bugs reais encontrados e corrigidos durante a verificação
+
+- **Cache do Turbopack corrompido**: depois de rodar `next build` (produção) em paralelo com o `next dev` do usuário (mesmo tipo de conflito de `.next` já visto na Fase 5), o `next dev` continuou servindo CSS desatualizado mesmo depois de reiniciado — o hash do arquivo de CSS servido não mudava entre reinícios, sinal de cache persistente em `.next/cache` sobrevivendo ao restart. Corrigido apagando a pasta `.next` inteira antes de subir o servidor de novo (autorizado pelo usuário).
+- **Cartão "double-bezel" invisível no tema escuro**: o núcleo interno do `PremiumCard` usava `dark:bg-zinc-950`, quase idêntico ao fundo da própria página no tema escuro (`#0a0a0a`) — o cartão ficava sem nenhum contraste visível. Corrigido para `dark:bg-zinc-900`, perceptivelmente mais claro que o fundo.
+
+### Verificação
+
+- `npx eslint .`, `npx tsc --noEmit`, `npx next build`: limpos.
+- Testado com Playwright, tema claro e escuro: landing page, login (fluxo real de autenticação, não só visual), dashboard. Confirmado que o clique no card do processo ainda navega corretamente e o menu "⋮" ainda abre sem disparar a navegação (comportamento construído numa revisão de UX anterior, preservado).
+- Confirmado que a tela de resultado e a geração de PDF da Fase 5 continuam funcionando exatamente como antes (não foram tocadas nesta leva) — testado gerando um PDF de verdade após todas as mudanças.
+
+### Pendente (próxima leva, após revisão do usuário)
+
+Os 5 formulários de intake (Perfil, Financeiro, Operação, Mercado, Documentos) e a tela de Resultado continuam com o tratamento visual anterior à esta leva. Se o usuário aprovar a direção desta primeira leva, o mesmo tratamento (cards, motion, ritmo espacial) pode ser estendido a essas telas — com atenção redobrada para não quebrar autosave, âncoras de campo (`id`s usados pelas pendências do Índice de Prontidão) nem a lógica de impressão/PDF da Fase 5.

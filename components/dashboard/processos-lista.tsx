@@ -90,11 +90,11 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
           return (
             <li
               key={processo.id}
-              className="relative flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-4 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+              className="relative flex items-center justify-between gap-3 rounded-2xl border border-zinc-900/5 bg-white p-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-premium dark:border-white/5 dark:bg-zinc-900"
             >
               <Link
                 href={destino}
-                className="absolute inset-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink dark:focus-visible:outline-accent"
+                className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink dark:focus-visible:outline-accent"
                 aria-label={
                   processo.completo
                     ? `Ver resultado de ${processo.nomeEmpresa}`

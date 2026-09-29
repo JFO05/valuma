@@ -15,7 +15,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between px-6 py-4">
+      <header className="flex items-center justify-between border-b border-zinc-900/5 px-6 py-4 dark:border-white/5">
         <Link
           href="/"
           className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50"
