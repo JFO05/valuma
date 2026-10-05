@@ -29,34 +29,57 @@ export default async function DashboardPage() {
 
   const processoIds = (processos ?? []).map((p) => p.id);
 
-  const { data: intakeRows } =
+  const { data: intakeRows, error: intakeError } =
     processoIds.length > 0
       ? await supabase
           .from("intake_data")
-          .select("processo_id, fase")
+          .select("processo_id, fase, atualizado_em")
           .in("processo_id", processoIds)
-      : { data: [] as { processo_id: string; fase: string }[] };
+      : { data: [] as { processo_id: string; fase: string; atualizado_em: string }[], error: null };
+
+  if (intakeError) {
+    throw new Error(`Não foi possível carregar o progresso dos processos: ${intakeError.message}`);
+  }
 
   // Prévia do resultado no card (revisão de UX, fora da numeração das Fases
-  // 1-6): só os 2 números já calculados, sem recálculo aqui — mesma fonte
-  // que a tela de resultado usa (public.resultados).
-  const { data: resultadosRows } =
+  // 1-6): só os números já calculados, sem recálculo aqui — mesma fonte que
+  // a tela de resultado usa (public.resultados). `atualizado_em` é usado
+  // para RG-46 (resultado desatualizado), nunca `processos.updated_at`
+  // (esse é "poluído" pela própria geração do resultado).
+  //
+  // Uma falha aqui NUNCA pode virar "nenhum processo tem resultado" — isso
+  // esconderia "Ver resultado" de processos que, na verdade, têm um
+  // resultado real salvo (achado da auditoria pós-implementação). Em vez de
+  // engolir o erro em `data ?? []`, a falha propaga e interrompe o render
+  // (mesmo padrão de lib/valuation/consolidar.ts::consolidarDadosProcesso),
+  // que é honesto sobre "não sabemos" em vez de mentir "não existe".
+  const { data: resultadosRows, error: resultadosError } =
     processoIds.length > 0
       ? await supabase
           .from("resultados")
-          .select("processo_id, valuation_final, score_total")
+          .select("processo_id, valuation_final, score_total, atualizado_em")
           .in("processo_id", processoIds)
-      : { data: [] as { processo_id: string; valuation_final: number; score_total: number }[] };
+      : { data: [] as { processo_id: string; valuation_final: number | null; score_total: number; atualizado_em: string }[], error: null };
+
+  if (resultadosError) {
+    throw new Error(`Não foi possível carregar os resultados dos processos: ${resultadosError.message}`);
+  }
 
   const resultadoPorProcesso = new Map(
     (resultadosRows ?? []).map((r) => [r.processo_id, r]),
   );
 
   const fasesPorProcesso = new Map<string, Set<string>>();
+  const ultimaAlteracaoIntakePorProcesso = new Map<string, string>();
   for (const row of intakeRows ?? []) {
     const fases = fasesPorProcesso.get(row.processo_id) ?? new Set<string>();
     fases.add(row.fase);
     fasesPorProcesso.set(row.processo_id, fases);
+
+    const atual = ultimaAlteracaoIntakePorProcesso.get(row.processo_id);
+    if (!atual || row.atualizado_em > atual) {
+      ultimaAlteracaoIntakePorProcesso.set(row.processo_id, row.atualizado_em);
+    }
   }
 
   function etapasPreenchidas(processoId: string) {
@@ -74,6 +97,8 @@ export default async function DashboardPage() {
 
   const processosResumo = (processos ?? []).map((processo) => {
     const resultado = resultadoPorProcesso.get(processo.id);
+    const ultimaAlteracaoIntake = ultimaAlteracaoIntakePorProcesso.get(processo.id);
+
     return {
       id: processo.id,
       nomeEmpresa: processo.nome_empresa,
@@ -81,6 +106,14 @@ export default async function DashboardPage() {
       atualizadoEm: processo.updated_at,
       preenchidas: etapasPreenchidas(processo.id),
       completo: intakeCompleto(processo.id),
+      // RG-49: "Ver resultado" depende da existência real de um resultado
+      // gerado (public.resultados), não da completude do intake — um
+      // processo pode ter um resultado válido usando só os campos mínimos
+      // (RG-40), sem nunca ter visitado Operação/Mercado/Documentos.
+      temResultado: resultado !== undefined,
+      resultadoDesatualizado: Boolean(
+        resultado && ultimaAlteracaoIntake && ultimaAlteracaoIntake > resultado.atualizado_em,
+      ),
       valuationFinal: resultado?.valuation_final ?? null,
       indiceGeral: resultado?.score_total ?? null,
     };

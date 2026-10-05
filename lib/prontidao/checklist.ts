@@ -1,19 +1,22 @@
-import type { DadosProcesso } from "@/lib/valuation/types";
+import { informadoExplicitamente, type DadosProcesso } from "@/lib/valuation/types";
 import type { FaseIntake } from "@/lib/intake/fases";
 import type { DreAnoFormValues } from "@/lib/intake/schema-financeiro";
+import {
+  CATEGORIAS_DOCUMENTO,
+  CATEGORIA_DOCUMENTO_LABELS,
+  documentoDisponibilizado,
+} from "@/lib/intake/schema-documentos";
 
 /**
- * Índice de Prontidão para M&A (Fase 2 do plano de evolução) — "percentual
- * de preparação e estruturação das informações necessárias para uma análise
- * preliminar". NÃO é uma nota de qualidade do negócio (isso era o antigo
- * lib/valuation/score.ts, removido nesta fase).
+ * Índice de Prontidão Informacional para M&A (RG-26 a RG-32 de
+ * docs/REGRAS_NEGOCIO_VALUMA_V1.md) — "percentual de preparação e
+ * estruturação das informações necessárias para uma análise preliminar".
+ * NÃO é uma nota de qualidade do negócio (isso era o antigo
+ * lib/valuation/score.ts, removido na Regra de Negócio v1.0 — RG-28).
  *
- * O Perfil não entra no cálculo (decisão da própria especificação da Fase 2)
- * — só Financeiro, Operacional, Mercado e Documental.
- *
- * Cada item do checklist usa exclusivamente campos que já existem no
- * intake — nenhum campo novo foi criado para isso. A lista completa está
- * documentada em tabela em docs/DECISOES_MVP.md.
+ * O Perfil não entra no cálculo (RG-29) — só Financeiro, Operacional,
+ * Mercado e Documental, cada um valendo 25% (RG-27), com pesos iguais entre
+ * os itens dentro de cada dimensão (RG-30).
  */
 
 export type DimensaoProntidao =
@@ -22,43 +25,86 @@ export type DimensaoProntidao =
   | "mercado"
   | "documental";
 
+/**
+ * Quatro estados de validade (RG-32): AUSENTE e INVÁLIDO não contam para a
+ * nota da dimensão; VÁLIDO_ESTRUTURALMENTE e VÁLIDO_COM_ALERTA contam — o
+ * segundo, além disso, gera um alerta visível ao usuário (RG-32). Não existe
+ * um quinto estado "validado profissionalmente" — isso é escopo da etapa
+ * posterior de contador/advogado (RG-38), fora do motor automático da v1.
+ */
+export const ESTADOS_ITEM_PRONTIDAO = [
+  "ausente",
+  "invalido",
+  "valido_estruturalmente",
+  "valido_com_alerta",
+] as const;
+export type EstadoItemProntidao = (typeof ESTADOS_ITEM_PRONTIDAO)[number];
+
 export interface ItemChecklistProntidao {
   id: string;
   dimensao: DimensaoProntidao;
   fase: FaseIntake;
   /** Caminho do campo de origem nos dados do intake, só para documentação/depuração. */
   campo: string;
-  /** Texto amigável mostrado ao usuário nas pendências. */
+  /** Texto amigável mostrado ao usuário nas pendências/alertas. */
   label: string;
-  isValido: (dados: DadosProcesso) => boolean;
+  avaliar: (dados: DadosProcesso) => EstadoItemProntidao;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers de validação (RG-32/RG-33 — limites da validação automática:
+// presença, tipo/formato, domínio, consistência simples; nunca leitura
+// semântica de conteúdo nem decisão de IA).
+// ---------------------------------------------------------------------------
+
 /**
- * Mesma regra de ambiguidade já usada em lib/valuation/score.ts e
- * lib/valuation/campos-obrigatorios.ts: o valor padrão de um campo nunca
- * tocado é 0, então "diferente de zero" é a forma prática de distinguir
- * "não preenchido" de "preenchido com um valor real" sem precisar de um
- * campo extra de "toquei nisso". Aceita negativos (ex.: lucro líquido,
- * patrimônio líquido) como preenchidos — só o zero é ambíguo.
+ * Convenção aceita e documentada (achado da auditoria original) para campos
+ * numéricos que NÃO migraram para o modelo "undefined = não informado" nesta
+ * versão (RG-33 cobre explicitamente só EBITDA, Patrimônio Líquido e Caixa e
+ * Equivalentes — os demais campos numéricos do intake continuam usando esta
+ * heurística de "diferente de zero" por não terem sido citados pela Regra de
+ * Negócio v1.0 como precisando de correção nesta rodada).
  */
 function numeroInformado(valor: number | undefined): boolean {
   return typeof valor === "number" && Number.isFinite(valor) && valor !== 0;
 }
 
-function textoInformado(valor: string | undefined): boolean {
-  return typeof valor === "string" && valor.trim().length > 0;
+function binario(condicao: boolean): EstadoItemProntidao {
+  return condicao ? "valido_estruturalmente" : "ausente";
+}
+
+/** Domínio 0–100 (percentuais) — fora do intervalo é tratado como INVÁLIDO, não como ausente (RG-32: validação de domínio). */
+function estadoPercentual(valor: number | undefined, informado: boolean): EstadoItemProntidao {
+  if (!informado) return "ausente";
+  if (typeof valor !== "number" || valor < 0 || valor > 100) return "invalido";
+  return "valido_estruturalmente";
+}
+
+/**
+ * Textos livres (Fase 3.7 do prompt de implementação): rejeita vazio,
+ * repetição trivial de um único caractere e conteúdo sem nenhuma letra ou
+ * dígito — sem exigir um mínimo de caracteres exagerado e sem qualquer
+ * leitura semântica (isso é papel da IA, nunca da Prontidão).
+ */
+function estadoTexto(valor: string | undefined): EstadoItemProntidao {
+  if (typeof valor !== "string") return "ausente";
+  const texto = valor.trim();
+  if (texto.length === 0) return "ausente";
+  if (texto.length < 5) return "invalido";
+  const semEspacos = texto.replace(/\s+/g, "");
+  if (/^(.)\1*$/.test(semEspacos)) return "invalido";
+  if (!/[a-zA-ZÀ-ÿ0-9]/.test(texto)) return "invalido";
+  return "valido_estruturalmente";
 }
 
 // ---------------------------------------------------------------------------
-// FINANCEIRO — DRE (3 anos fixos × 8 campos) + balanço (5 campos) + dívidas
+// FINANCEIRO — DRE (3 anos fixos × 8 campos) + balanço (5 campos) + dívidas +
+// caixa e equivalentes
 // ---------------------------------------------------------------------------
 
 const RECEITA_LABEL_POR_INDICE = ["ano mais recente", "ano intermediário", "ano mais antigo"];
 
-/**
- * Campos do DRE com valores que nunca são negativos na vida real (receita,
- * deduções, custos, despesas) — "preenchido" = maior que zero.
- */
+/** Campos do DRE com valores que nunca são negativos na vida real — "preenchido" = maior que zero (heurística não migrada nesta versão, ver numeroInformado). */
 const CAMPOS_DRE_NAO_NEGATIVOS: {
   campo: keyof DreAnoFormValues;
   label: string;
@@ -70,13 +116,9 @@ const CAMPOS_DRE_NAO_NEGATIVOS: {
   { campo: "despesasOperacionais", label: "Despesas operacionais" },
 ];
 
-/**
- * Campos do DRE que podem legitimamente ser negativos (empresa deficitária)
- * — "preenchido" = diferente de zero (positivo ou negativo).
- */
-const CAMPOS_DRE_COM_SINAL: { campo: keyof DreAnoFormValues; label: string }[] = [
+/** lucroBruto/lucroLiquido continuam na heurística "diferente de zero"; EBITDA usa informadoExplicitamente (RG-33) — tratado à parte abaixo. */
+const CAMPOS_DRE_COM_SINAL: { campo: "lucroBruto" | "lucroLiquido"; label: string }[] = [
   { campo: "lucroBruto", label: "Lucro bruto" },
-  { campo: "ebitda", label: "EBITDA" },
   { campo: "lucroLiquido", label: "Lucro líquido" },
 ];
 
@@ -93,9 +135,9 @@ function itensDre(): ItemChecklistProntidao[] {
         fase: "financeiro",
         campo: `financeiro.dre[${indice}].${campo}`,
         label: `${label} — DRE, ${rotuloAno}`,
-        isValido: (dados) => {
+        avaliar: (dados) => {
           const valor = dados.financeiro.dre[indice]?.[campo];
-          return typeof valor === "number" && valor > 0;
+          return binario(typeof valor === "number" && valor > 0);
         },
       });
     }
@@ -107,12 +149,24 @@ function itensDre(): ItemChecklistProntidao[] {
         fase: "financeiro",
         campo: `financeiro.dre[${indice}].${campo}`,
         label: `${label} — DRE, ${rotuloAno}`,
-        isValido: (dados) => {
+        avaliar: (dados) => {
           const valor = dados.financeiro.dre[indice]?.[campo];
-          return numeroInformado(valor as number | undefined);
+          return binario(numeroInformado(valor as number | undefined));
         },
       });
     }
+
+    // EBITDA (RG-33): zero ou negativo, quando explicitamente informado,
+    // conta como preenchido — diferente dos demais campos do DRE acima.
+    itens.push({
+      id: `financeiro.dre.${indice}.ebitda`,
+      dimensao: "financeiro",
+      fase: "financeiro",
+      campo: `financeiro.dre[${indice}].ebitda`,
+      label: `EBITDA — DRE, ${rotuloAno}`,
+      avaliar: (dados) =>
+        binario(informadoExplicitamente(dados.financeiro.dre[indice]?.ebitda)),
+    });
   }
 
   return itens;
@@ -125,7 +179,7 @@ const ITENS_BALANCO: ItemChecklistProntidao[] = [
     fase: "financeiro",
     campo: "financeiro.balanco.ativoTotal",
     label: "Ativo total",
-    isValido: (dados) => dados.financeiro.balanco.ativoTotal > 0,
+    avaliar: (dados) => binario(dados.financeiro.balanco.ativoTotal > 0),
   },
   {
     id: "financeiro.balanco.ativoCirculante",
@@ -133,7 +187,7 @@ const ITENS_BALANCO: ItemChecklistProntidao[] = [
     fase: "financeiro",
     campo: "financeiro.balanco.ativoCirculante",
     label: "Ativo circulante",
-    isValido: (dados) => dados.financeiro.balanco.ativoCirculante > 0,
+    avaliar: (dados) => binario(dados.financeiro.balanco.ativoCirculante > 0),
   },
   {
     id: "financeiro.balanco.passivoTotal",
@@ -141,7 +195,7 @@ const ITENS_BALANCO: ItemChecklistProntidao[] = [
     fase: "financeiro",
     campo: "financeiro.balanco.passivoTotal",
     label: "Passivo total",
-    isValido: (dados) => dados.financeiro.balanco.passivoTotal > 0,
+    avaliar: (dados) => binario(dados.financeiro.balanco.passivoTotal > 0),
   },
   {
     id: "financeiro.balanco.passivoCirculante",
@@ -149,29 +203,43 @@ const ITENS_BALANCO: ItemChecklistProntidao[] = [
     fase: "financeiro",
     campo: "financeiro.balanco.passivoCirculante",
     label: "Passivo circulante",
-    isValido: (dados) => dados.financeiro.balanco.passivoCirculante > 0,
+    avaliar: (dados) => binario(dados.financeiro.balanco.passivoCirculante > 0),
   },
   {
+    // RG-33: mesma correção do EBITDA — zero/negativo informado conta.
     id: "financeiro.balanco.patrimonioLiquido",
     dimensao: "financeiro",
     fase: "financeiro",
     campo: "financeiro.balanco.patrimonioLiquido",
     label: "Patrimônio líquido",
-    isValido: (dados) => numeroInformado(dados.financeiro.balanco.patrimonioLiquido),
+    avaliar: (dados) =>
+      binario(informadoExplicitamente(dados.financeiro.balanco.patrimonioLiquido)),
   },
   {
-    // Lista de tamanho variável — tratada como 1 item binário ("pelo menos
-    // uma dívida informada"), não uma dívida por linha. Limitação aceita e
-    // documentada em docs/DECISOES_MVP.md: uma empresa genuinamente sem
-    // dívidas nunca completa este item, pelo mesmo motivo pelo qual
-    // lib/valuation/score.ts trata "nenhuma dívida" como ambíguo, não como
-    // "zero dívidas confirmado".
+    id: "financeiro.caixaEquivalentes",
+    dimensao: "financeiro",
+    fase: "financeiro",
+    campo: "financeiro.caixaEquivalentes",
+    label: "Caixa e equivalentes de caixa",
+    avaliar: (dados) =>
+      binario(informadoExplicitamente(dados.financeiro.caixaEquivalentes)),
+  },
+  {
+    // RG-14/1.2 do prompt de implementação: "Não" já conta como informado
+    // (dívida financeira total = 0 é uma resposta válida, não uma ausência).
+    // "Sim" com lista vazia é uma inconsistência — conta para a Prontidão,
+    // mas como VÁLIDO_COM_ALERTA (RG-32), não como um preenchimento limpo.
     id: "financeiro.dividas",
     dimensao: "financeiro",
     fase: "financeiro",
     campo: "financeiro.dividas",
-    label: "Dívidas e financiamentos informados",
-    isValido: (dados) => dados.financeiro.dividas.length > 0,
+    label: "Situação de dívida financeira",
+    avaliar: (dados) => {
+      const { possuiDividas, dividas } = dados.financeiro;
+      if (possuiDividas === undefined) return "ausente";
+      if (possuiDividas === "sim" && dividas.length === 0) return "valido_com_alerta";
+      return "valido_estruturalmente";
+    },
   },
 ];
 
@@ -186,7 +254,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.numeroFuncionariosTotal",
     label: "Número total de funcionários",
-    isValido: (dados) => dados.operacao.numeroFuncionariosTotal > 0,
+    avaliar: (dados) => binario(dados.operacao.numeroFuncionariosTotal > 0),
   },
   {
     id: "operacao.cargosEquipe",
@@ -194,7 +262,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.cargosEquipe",
     label: "Principais cargos/áreas informados",
-    isValido: (dados) => dados.operacao.cargosEquipe.length > 0,
+    avaliar: (dados) => binario(dados.operacao.cargosEquipe.length > 0),
   },
   {
     id: "operacao.numeroClientesAtivos",
@@ -202,7 +270,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.numeroClientesAtivos",
     label: "Número de clientes ativos",
-    isValido: (dados) => dados.operacao.numeroClientesAtivos > 0,
+    avaliar: (dados) => binario(dados.operacao.numeroClientesAtivos > 0),
   },
   {
     id: "operacao.concentracaoTop3Clientes",
@@ -210,7 +278,11 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.concentracaoTop3Clientes",
     label: "Concentração dos 3 maiores clientes",
-    isValido: (dados) => numeroInformado(dados.operacao.concentracaoTop3Clientes),
+    avaliar: (dados) =>
+      estadoPercentual(
+        dados.operacao.concentracaoTop3Clientes,
+        numeroInformado(dados.operacao.concentracaoTop3Clientes),
+      ),
   },
   {
     id: "operacao.clientesPrincipais",
@@ -218,7 +290,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.clientesPrincipais",
     label: "Principais clientes informados",
-    isValido: (dados) => dados.operacao.clientesPrincipais.length > 0,
+    avaliar: (dados) => binario(dados.operacao.clientesPrincipais.length > 0),
   },
   {
     id: "operacao.fornecedoresPrincipais",
@@ -226,7 +298,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.fornecedoresPrincipais",
     label: "Principais fornecedores informados",
-    isValido: (dados) => dados.operacao.fornecedoresPrincipais.length > 0,
+    avaliar: (dados) => binario(dados.operacao.fornecedoresPrincipais.length > 0),
   },
   {
     id: "operacao.processosOperacionais",
@@ -234,7 +306,7 @@ const ITENS_OPERACIONAL: ItemChecklistProntidao[] = [
     fase: "operacao",
     campo: "operacao.processosOperacionais",
     label: "Descrição dos processos operacionais",
-    isValido: (dados) => textoInformado(dados.operacao.processosOperacionais),
+    avaliar: (dados) => estadoTexto(dados.operacao.processosOperacionais),
   },
 ];
 
@@ -249,7 +321,7 @@ const ITENS_MERCADO: ItemChecklistProntidao[] = [
     fase: "mercado",
     campo: "mercado.concorrentes",
     label: "Concorrentes mapeados",
-    isValido: (dados) => dados.mercado.concorrentes.length > 0,
+    avaliar: (dados) => binario(dados.mercado.concorrentes.length > 0),
   },
   {
     id: "mercado.posicionamento",
@@ -257,18 +329,17 @@ const ITENS_MERCADO: ItemChecklistProntidao[] = [
     fase: "mercado",
     campo: "mercado.posicionamento",
     label: "Posicionamento descrito",
-    isValido: (dados) => textoInformado(dados.mercado.posicionamento),
+    avaliar: (dados) => estadoTexto(dados.mercado.posicionamento),
   },
   {
     id: "mercado.tamMercado",
     dimensao: "mercado",
     fase: "mercado",
     campo: "mercado.tamMercado",
-    // tamMercado é opcional de verdade no schema (undefined por padrão, não
-    // 0) — diferente dos outros campos numéricos, aqui não há ambiguidade:
-    // qualquer número, incluindo 0, conta como informado.
+    // tamMercado já era opcional de verdade (undefined por padrão, não 0) —
+    // sem ambiguidade: qualquer número, incluindo 0, conta como informado.
     label: "Tamanho de mercado estimado (TAM)",
-    isValido: (dados) => typeof dados.mercado.tamMercado === "number",
+    avaliar: (dados) => binario(typeof dados.mercado.tamMercado === "number"),
   },
   {
     id: "mercado.sinergiasPotenciais",
@@ -276,39 +347,30 @@ const ITENS_MERCADO: ItemChecklistProntidao[] = [
     fase: "mercado",
     campo: "mercado.sinergiasPotenciais",
     label: "Sinergias potenciais para M&A descritas",
-    isValido: (dados) => textoInformado(dados.mercado.sinergiasPotenciais),
+    avaliar: (dados) => estadoTexto(dados.mercado.sinergiasPotenciais),
   },
 ];
 
 // ---------------------------------------------------------------------------
-// DOCUMENTAL
+// DOCUMENTAL — 6 categorias fixas (RG-35/RG-36), não mais "slots" genéricos
 // ---------------------------------------------------------------------------
 
-/**
- * O formulário de Documentos não categoriza os arquivos por tipo (o schema
- * só guarda nome/path/tamanho/tipo MIME/data — ver
- * lib/intake/schema-documentos.ts) — não há um "checklist de documentos"
- * nomeado para reaproveitar. Na ausência de itens nomeados, cada "slot" de
- * upload (1º ao 5º arquivo) vira um item — o mesmo número de referência (5)
- * já usado pelo score antigo (DOCUMENTOS_ESPERADOS_PADRAO, em
- * lib/valuation/score.ts, removido nesta fase), agora expresso como itens
- * discretos em vez de uma razão contínua. Documentado em docs/DECISOES_MVP.md.
- */
-const QUANTIDADE_SLOTS_DOCUMENTOS = 5;
-
 function itensDocumentais(): ItemChecklistProntidao[] {
-  const itens: ItemChecklistProntidao[] = [];
-  for (let i = 1; i <= QUANTIDADE_SLOTS_DOCUMENTOS; i++) {
-    itens.push({
-      id: `documentos.arquivo.${i}`,
-      dimensao: "documental",
-      fase: "documentos",
-      campo: "documentos.arquivos",
-      label: `${i}º documento enviado`,
-      isValido: (dados) => dados.documentos.arquivos.length >= i,
-    });
-  }
-  return itens;
+  return CATEGORIAS_DOCUMENTO.map((categoria) => ({
+    id: `documentos.categoria.${categoria}`,
+    dimensao: "documental" as const,
+    fase: "documentos" as const,
+    campo: "documentos.arquivos",
+    label: CATEGORIA_DOCUMENTO_LABELS[categoria],
+    avaliar: (dados: DadosProcesso): EstadoItemProntidao =>
+      // RG-36: uma categoria conta 1 vez, não importa quantos documentos
+      // (válidos/disponibilizados) ela tenha — nunca por quantidade bruta.
+      binario(
+        dados.documentos.arquivos.some(
+          (arquivo) => arquivo.categoria === categoria && documentoDisponibilizado(arquivo),
+        ),
+      ),
+  }));
 }
 
 export const CHECKLIST_PRONTIDAO: ItemChecklistProntidao[] = [
@@ -324,18 +386,22 @@ export interface PendenciaProntidao {
   dimensao: DimensaoProntidao;
   fase: FaseIntake;
   label: string;
+  /** "ausente" (nunca preenchido) ou "invalido" (preenchido, mas fora do domínio/consistência esperada) — RG-32. */
+  estado: "ausente" | "invalido";
+}
+
+export interface AlertaProntidao {
+  id: string;
+  dimensao: DimensaoProntidao;
+  fase: FaseIntake;
+  label: string;
 }
 
 /**
  * Id do item → id de DOM do campo correspondente no formulário, pra "O que
- * ainda falta" (Fase 3) e a nova lista por etapa poderem linkar direto pro
- * campo (revisão de UX, fora da numeração das Fases 1-6). Para quase todo
- * item é a mesma string (o `id` do item já é usado literalmente como `id`
- * do input/fieldset correspondente nos componentes de formulário) — exceto
- * os 5 itens documentais, que não têm campo individual no DOM (é uma única
- * área de upload, sem um campo "tipo de documento" no schema — ver
- * `itensDocumentais` acima): todos apontam para o mesmo id da área de
- * upload.
+ * ainda falta" poder linkar direto pro campo. Para quase todo item é a
+ * mesma string, exceto os itens documentais (RG-35): todos apontam para a
+ * mesma área de upload/categorização, não um campo por categoria.
  */
 export function ancoraDoItemProntidao(
   item: Pick<PendenciaProntidao, "id" | "dimensao">,
@@ -349,6 +415,7 @@ export interface NotaDimensao {
   validos: number;
   esperados: number;
   pendencias: PendenciaProntidao[];
+  alertas: AlertaProntidao[];
 }
 
 export interface ResultadoProntidao {
@@ -364,14 +431,13 @@ const DIMENSOES: DimensaoProntidao[] = [
 ];
 
 /**
- * Função pura: nota da dimensão = itens válidos / itens esperados × 100,
- * arredondada para inteiro. Índice Geral = média simples das 4 dimensões.
- * Sem pesos por campo — cada item do checklist vale o mesmo dentro da sua
- * dimensão.
+ * Função pura: nota da dimensão = itens válidos (estruturalmente ou com
+ * alerta) / itens esperados × 100. Índice Geral = média simples das 4
+ * dimensões, calculada com precisão completa — o arredondamento acontece só
+ * na apresentação (RG-49/RG-51), nunca aqui.
  *
  * Lança erro se alguma dimensão não tiver nenhum item no checklist (erro de
- * configuração, não um estado válido de dados de usuário) — coberto por
- * teste, conforme pedido na especificação da Fase 2.
+ * configuração, não um estado válido de dados de usuário).
  */
 export function calcularProntidao(dados: DadosProcesso): ResultadoProntidao {
   const dimensoes = {} as Record<DimensaoProntidao, NotaDimensao>;
@@ -386,26 +452,34 @@ export function calcularProntidao(dados: DadosProcesso): ResultadoProntidao {
     }
 
     const pendencias: PendenciaProntidao[] = [];
+    const alertas: AlertaProntidao[] = [];
     let validos = 0;
 
     for (const item of itens) {
-      if (item.isValido(dados)) {
+      const estado = item.avaliar(dados);
+
+      if (estado === "valido_estruturalmente") {
         validos += 1;
+      } else if (estado === "valido_com_alerta") {
+        validos += 1;
+        alertas.push({ id: item.id, dimensao: item.dimensao, fase: item.fase, label: item.label });
       } else {
         pendencias.push({
           id: item.id,
           dimensao: item.dimensao,
           fase: item.fase,
           label: item.label,
+          estado,
         });
       }
     }
 
     dimensoes[dimensao] = {
-      nota: Math.round((validos / itens.length) * 100),
+      nota: (validos / itens.length) * 100,
       validos,
       esperados: itens.length,
       pendencias,
+      alertas,
     };
   }
 

@@ -37,6 +37,12 @@ export function PerfilForm({
   } = useForm<PerfilFormValues>({
     resolver: zodResolver(perfilSchema),
     defaultValues: parsePerfilData(dadosIniciais),
+    // Sem handleSubmit (o form nunca "envia" — autosave salva o rascunho o
+    // tempo todo), então o padrão `mode: "onSubmit"` do RHF nunca dispararia
+    // validação nenhuma. `onBlur` valida ao sair de um campo, sem exigir
+    // 100% de preenchimento nem bloquear a navegação entre etapas (achado
+    // DIV-03 da auditoria pós-implementação).
+    mode: "onBlur",
   });
 
   // Corrige o caso do usuário voltar pra esta página pelo botão

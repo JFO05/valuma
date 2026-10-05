@@ -34,6 +34,9 @@ export function MercadoForm({
   } = useForm<MercadoFormValues>({
     resolver: zodResolver(mercadoSchema),
     defaultValues: parseMercadoData(dadosIniciais),
+    // Ver comentário equivalente em perfil-form.tsx — sem isso a validação
+    // Zod nunca rodava (achado DIV-03 da auditoria pós-implementação).
+    mode: "onBlur",
   });
 
   useFreshDadosIniciais(processoId, "mercado", (dados) =>

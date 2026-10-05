@@ -1,20 +1,26 @@
 /**
- * Testa calcularValuation e calcularScore isoladamente, com um objeto
- * DadosProcesso fictício — sem precisar de tela nem de banco.
+ * Testa calcularValuation isoladamente, com um objeto DadosProcesso
+ * fictício — sem precisar de tela nem de banco.
  *
  * NÃO testa consolidarDadosProcesso: essa função só roda dentro de uma
  * request do Next (usa lib/supabase/server.ts, que depende de
  * next/headers), então não dá pra chamá-la de um script solto rodado com
- * tsx. calcularValuation/calcularScore, por outro lado, são puras — só
- * recebem o objeto DadosProcesso e devolvem números — por isso dá pra
- * testá-las aqui com dados inventados, no formato exato que
- * consolidarDadosProcesso produziria a partir do banco.
+ * tsx. calcularValuation, por outro lado, é pura — só recebe o objeto
+ * DadosProcesso e devolve números — por isso dá pra testá-la aqui com dados
+ * inventados, no formato exato que consolidarDadosProcesso produziria a
+ * partir do banco.
+ *
+ * O antigo motor de score de qualidade (lib/valuation/score.ts) foi
+ * removido na Regra de Negócio v1.0 (RG-28) — este script cobria as duas
+ * coisas antes; agora cobre só o motor de valuation. O Índice de Prontidão
+ * tem sua própria suíte em scripts/testar-prontidao.ts, e as regras de
+ * negócio v1.0 (Equity Value, dívida líquida, aplicabilidade) têm a suíte
+ * dedicada em scripts/testar-regras-negocio.ts.
  *
  * Rodar com: npm run valuation:test
  */
 import type { DadosProcesso } from "../lib/valuation/types";
 import { calcularValuation } from "../lib/valuation/calcular";
-import { calcularScore } from "../lib/valuation/score";
 
 const dadosExemplo: DadosProcesso = {
   processoId: "exemplo-manual",
@@ -76,6 +82,8 @@ const dadosExemplo: DadosProcesso = {
       passivoCirculante: 600_000,
       patrimonioLiquido: 1_700_000,
     },
+    caixaEquivalentes: 250_000,
+    possuiDividas: "sim",
     dividas: [
       { credor: "Banco XYZ", valor: 450_000, taxaJurosAnual: 14.5, vencimento: "2027-06-30" },
     ],
@@ -129,6 +137,7 @@ const dadosExemplo: DadosProcesso = {
         tamanho: 240_000,
         tipo: "application/pdf",
         enviadoEm: new Date().toISOString(),
+        categoria: "societario",
       },
       {
         nome: "balanco_2025.pdf",
@@ -136,6 +145,8 @@ const dadosExemplo: DadosProcesso = {
         tamanho: 180_000,
         tipo: "application/pdf",
         enviadoEm: new Date().toISOString(),
+        categoria: "balanco_patrimonial",
+        periodoReferencia: "2025",
       },
       {
         nome: "dre_2025.xlsx",
@@ -143,13 +154,15 @@ const dadosExemplo: DadosProcesso = {
         tamanho: 90_000,
         tipo: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         enviadoEm: new Date().toISOString(),
+        categoria: "dre",
+        periodoReferencia: "2025",
       },
     ],
   },
 };
 
 function formatBRL(valor: number | null): string {
-  if (valor === null) return "N/A (dados insuficientes)";
+  if (valor === null) return "N/A (não aplicável)";
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -157,19 +170,19 @@ function formatBRL(valor: number | null): string {
 }
 
 const valuation = calcularValuation(dadosExemplo);
-const score = calcularScore(dadosExemplo);
 
-console.log("=== VALUATION ===");
+console.log("=== VALUATION (Regra de Negócio v1.0 — Equity Value) ===");
 console.log("Ano base utilizado:", valuation.anoBaseUtilizado);
 console.log("EBITDA base utilizado:", formatBRL(valuation.ebitdaBaseUtilizado));
-console.log("Valuation por múltiplo de EBITDA:", formatBRL(valuation.valuationEbitda));
-console.log("Valuation por DCF simplificado:  ", formatBRL(valuation.valuationDcf));
-console.log("Valuation patrimonial:           ", formatBRL(valuation.valuationPatrimonial));
-console.log("Valuation final (média ponderada):", formatBRL(valuation.valuationFinal));
-
-console.log("\n=== SCORE (0-100) ===");
-console.log("Financeiro:", score.scoreFinanceiro.toFixed(1));
-console.log("Operação:  ", score.scoreOperacao.toFixed(1));
-console.log("Mercado:   ", score.scoreMercado.toFixed(1));
-console.log("Jurídico:  ", score.scoreJuridico.toFixed(1));
-console.log("TOTAL:     ", score.scoreTotal.toFixed(1));
+console.log("Dívida financeira total:", formatBRL(valuation.dividaFinanceiraTotal));
+console.log("Caixa e equivalentes:   ", formatBRL(valuation.caixaEquivalentes));
+console.log("Dívida líquida:         ", formatBRL(valuation.dividaLiquida));
+console.log("");
+console.log("Enterprise Value (Múltiplos):", formatBRL(valuation.evMultiplos));
+console.log("Enterprise Value (DCF):      ", formatBRL(valuation.evDcf));
+console.log("");
+console.log("Equity Value por Múltiplo de EBITDA:", formatBRL(valuation.valuationEbitda));
+console.log("Equity Value por DCF simplificado:  ", formatBRL(valuation.valuationDcf));
+console.log("Equity Value Patrimonial:           ", formatBRL(valuation.valuationPatrimonial));
+console.log("Estimativa preliminar de Equity Value (consolidado):", formatBRL(valuation.valuationFinal));
+console.log("Aplicabilidade:", valuation.aplicabilidade);

@@ -12,14 +12,13 @@ import type { DadosProcesso } from "./types";
  * tipado. Fases não preenchidas (linha inexistente em intake_data, ou jsonb
  * `{}`) viram os valores-padrão de cada schema via as mesmas funções
  * parseXxxData já usadas pelos formulários — nunca `undefined` ou erro —
- * para que calcular.ts e score.ts não precisem checar undefined campo a
- * campo.
+ * para que calcular.ts não precise checar undefined campo a campo.
  *
  * Só funciona dentro de uma request do Next (Server Component, Server Action
  * ou Route Handler), porque usa o cliente Supabase de lib/supabase/server.ts
  * (que depende de next/headers). Por isso a lógica de cálculo em si
- * (calcular.ts, score.ts) fica em módulos separados que não dependem desta
- * função — só do tipo DadosProcesso, em ./types.ts.
+ * (calcular.ts) fica em módulo separado que não depende desta função — só do
+ * tipo DadosProcesso, em ./types.ts.
  */
 export async function consolidarDadosProcesso(
   processoId: string,

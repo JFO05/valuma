@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "valuation:test": "tsx scripts/testar-valuation.ts",
-    "prontidao:test": "tsx scripts/testar-prontidao.ts"
+    "prontidao:test": "tsx scripts/testar-prontidao.ts",
+    "regras:test": "tsx scripts/testar-regras-negocio.ts",
+    "test": "npm run valuation:test && npm run prontidao:test && npm run regras:test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

@@ -6,7 +6,7 @@ import { calcularProntidao } from "@/lib/prontidao/checklist";
 import { analisarComIA } from "@/lib/ai/analisar";
 import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
-import type { ResultadoValuation } from "@/lib/valuation/types";
+import { MODEL_VERSION, type ResultadoValuation } from "@/lib/valuation/types";
 
 export async function POST(
   _request: Request,
@@ -41,9 +41,9 @@ export async function POST(
 
   const dados = await consolidarDadosProcesso(processoId);
 
-  // DEF-01: mesmo checklist mínimo (decisão D2) que já esconde o botão na
-  // tela — verificado de novo aqui porque a rota é alcançável por qualquer
-  // request, não só pelo clique no botão. Ver lib/valuation/campos-obrigatorios.ts.
+  // Campos mínimos (RG-40) — únicos que realmente bloqueiam a geração,
+  // checados de novo aqui porque a rota é alcançável por qualquer request,
+  // não só pelo clique no botão. Ver lib/valuation/campos-obrigatorios.ts.
   const pendencias = verificarCamposObrigatorios(dados);
   if (pendencias.length > 0) {
     return NextResponse.json(
@@ -59,39 +59,41 @@ export async function POST(
   const valuation = calcularValuation(dados);
   const prontidao = calcularProntidao(dados);
 
-  // Guarda defensiva: com o checklist acima, valuationEbitda/valuationDcf
-  // nunca deveriam vir null aqui — mantido como rede de segurança caso o
-  // checklist e o motor divirjam no futuro.
-  if (valuation.valuationEbitda === null || valuation.valuationDcf === null) {
-    return NextResponse.json(
-      {
-        error:
-          "Não há dados financeiros suficientes (nenhum ano do DRE preenchido) para gerar o resultado deste processo.",
-      },
-      { status: 422 },
-    );
-  }
-
-  // Fase 3: a IA recebe os números JÁ calculados (valuation + prontidão)
-  // como contexto de leitura — nunca os recalcula nem os altera (ver
-  // lib/ai/analisar.ts e docs/DECISOES_MVP.md).
+  // RG-25/RG-26: mesmo com NENHUM método de valuation aplicável, o
+  // resultado (Prontidão + pendências + análise de IA) continua sendo
+  // gerado — nunca um erro 422 aqui. A ausência de consolidado é um estado
+  // de negócio válido, não uma falha técnica.
   const analiseIA = await analisarComIA(dados, { valuation, prontidao });
 
   // Fase 2 / D3: colunas score_* reaproveitadas para o Índice de Prontidão
   // (financeiro/operacional/mercado/documental) — ver comentário em
-  // lib/valuation/types.ts::ResultadoValuation. "versao" dentro do jsonb
-  // distingue de resultados antigos gerados com o score de qualidade.
+  // lib/valuation/types.ts::ResultadoValuation. A versão da Regra de
+  // Negócio (RG-47) é gravada em `modelo_versao`, coluna própria,
+  // INDEPENDENTE de `analiseIA`/`analise_ia` (DIV-02 da auditoria
+  // pós-implementação) — por isso é atribuída fora do objeto `analiseIA`,
+  // incondicionalmente, mesmo que a chamada à IA tenha falhado acima.
   const resultado: ResultadoValuation = {
-    valuationFinal: valuation.valuationFinal ?? valuation.valuationPatrimonial,
+    valuationFinal: valuation.valuationFinal,
     valuationEbitda: valuation.valuationEbitda,
     valuationDcf: valuation.valuationDcf,
     valuationPatrimonial: valuation.valuationPatrimonial,
+    modeloVersao: MODEL_VERSION,
+    aplicabilidade: valuation.aplicabilidade,
     scoreTotal: prontidao.indiceGeral,
     scoreFinanceiro: prontidao.dimensoes.financeiro.nota,
     scoreOperacao: prontidao.dimensoes.operacional.nota,
     scoreMercado: prontidao.dimensoes.mercado.nota,
     scoreJuridico: prontidao.dimensoes.documental.nota,
-    analiseIA: { ...analiseIA, versao: "prontidao_v1" },
+    analiseIA: {
+      ...analiseIA,
+      explicabilidade: {
+        evMultiplos: valuation.evMultiplos,
+        evDcf: valuation.evDcf,
+        dividaFinanceiraTotal: valuation.dividaFinanceiraTotal,
+        caixaEquivalentes: valuation.caixaEquivalentes,
+        dividaLiquida: valuation.dividaLiquida,
+      },
+    },
   };
 
   const { data: salvo, error: saveError } = await supabase
@@ -103,6 +105,7 @@ export async function POST(
         valuation_ebitda: resultado.valuationEbitda,
         valuation_dcf: resultado.valuationDcf,
         valuation_patrimonial: resultado.valuationPatrimonial,
+        modelo_versao: resultado.modeloVersao,
         score_total: resultado.scoreTotal,
         score_financeiro: resultado.scoreFinanceiro,
         score_operacao: resultado.scoreOperacao,

@@ -47,7 +47,8 @@ export function AnaliseIaCards({
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-zinc-300 p-6 text-center dark:border-zinc-700">
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Análise qualitativa indisponível no momento.
+          Análise qualitativa temporariamente indisponível. Os cálculos de
+          valuation e Prontidão não foram afetados.
         </p>
         <GerarResultadoButton
           processoId={processoId}

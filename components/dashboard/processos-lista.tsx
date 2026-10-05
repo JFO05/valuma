@@ -17,6 +17,9 @@ export interface ProcessoResumo {
   atualizadoEm: string;
   preenchidas: number;
   completo: boolean;
+  /** RG-49: existência real de um resultado gerado — não a completude do intake. */
+  temResultado: boolean;
+  resultadoDesatualizado: boolean;
   valuationFinal: number | null;
   indiceGeral: number | null;
 }
@@ -80,10 +83,11 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
       <ul className="flex flex-col gap-2">
         {processos.map((processo) => {
           // Card inteiro clicável (não só o menu "⋮"): vai direto pro
-          // resultado quando já existe um, ou continua o preenchimento
-          // quando ainda não existe — mesmo destino que o item
-          // correspondente do menu já usava, só acessível de mais um jeito.
-          const destino = processo.completo
+          // resultado quando já existe um resultado real (RG-49), ou
+          // continua o preenchimento quando ainda não existe — mesmo
+          // destino que o item correspondente do menu já usava, só
+          // acessível de mais um jeito.
+          const destino = processo.temResultado
             ? `/processos/${processo.id}/resultado`
             : `/intake/${processo.id}/perfil`;
 
@@ -96,7 +100,7 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
                 href={destino}
                 className="absolute inset-0 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink dark:focus-visible:outline-accent"
                 aria-label={
-                  processo.completo
+                  processo.temResultado
                     ? `Ver resultado de ${processo.nomeEmpresa}`
                     : `Continuar preenchimento de ${processo.nomeEmpresa}`
                 }
@@ -127,11 +131,16 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
                     trabalha pra afastar desde a Fase 2. Só aparece quando
                     existe mesmo um resultado gerado (não usa `completo`, que
                     é sobre o intake, não sobre o resultado). */}
-                {processo.valuationFinal !== null && processo.indiceGeral !== null && (
+                {processo.temResultado && processo.indiceGeral !== null && (
                   <p className="text-xs text-zinc-500">
-                    Estimativa preliminar: {formatBRL(processo.valuationFinal)}
+                    {processo.valuationFinal !== null
+                      ? `Estimativa preliminar: ${formatBRL(processo.valuationFinal)}`
+                      : "Estimativa de Equity Value indisponível"}
                     {" · "}
                     Prontidão: {processo.indiceGeral.toFixed(0)}%
+                    {processo.resultadoDesatualizado && (
+                      <span className="text-amber-700 dark:text-amber-400"> · Desatualizado</span>
+                    )}
                   </p>
                 )}
               </div>
@@ -141,10 +150,10 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
                   label={`Mais ações de ${processo.nomeEmpresa}`}
                   itens={[
                     {
-                      label: processo.completo ? "Editar dados" : "Continuar preenchimento",
+                      label: processo.temResultado ? "Editar dados" : "Continuar preenchimento",
                       href: `/intake/${processo.id}/perfil`,
                     },
-                    ...(processo.completo
+                    ...(processo.temResultado
                       ? [{ label: "Ver resultado", href: `/processos/${processo.id}/resultado` }]
                       : []),
                     {

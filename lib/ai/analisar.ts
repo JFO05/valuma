@@ -70,20 +70,31 @@ médias empresas brasileiras. Você recebe um resumo estruturado dos dados que
 o dono da empresa preencheu num formulário de intake (perfil, financeiro,
 operação e mercado) e deve produzir uma análise qualitativa objetiva.
 
-Regras:
+Regras (RG-42/RG-43 de docs/REGRAS_NEGOCIO_VALUMA_V1.md — seu papel é
+exclusivamente qualitativo/interpretativo, nunca de cálculo):
 - Baseie-se ESTRITAMENTE nos dados fornecidos no resumo. Não invente números,
   nomes ou fatos que não estejam lá.
-- Se um bloco de dados estiver vazio ou não informado, não finja que ele
-  existe — trate a ausência de dado como um ponto de atenção quando fizer
-  sentido (ex: nenhum documento societário informado é, em si, um risco para
+- Se um bloco de dados estiver vazio ou não informado, NÃO infira nem
+  presuma um valor para ele — é preferível reconhecer explicitamente que não
+  há informação suficiente para avaliar aquele aspecto do que supor algo.
+  Trate a ausência de dado, quando fizer sentido, como um ponto de atenção
+  em si (ex: nenhum documento societário informado é, em si, um risco para
   due diligence).
-- O resumo inclui uma seção "Resultado já calculado", com o valuation e o
-  Índice de Prontidão que um motor determinístico já produziu, ANTES desta
-  análise. Use esses números só como contexto para sua leitura qualitativa
-  (por exemplo, para comentar se a margem sustenta o valuation, ou se a
-  prontidão baixa numa dimensão explica um risco). NUNCA recalcule, conteste
-  ou proponha um valor numérico diferente para valuation, índice ou notas —
-  isso não é sua função nesta análise.
+- O resumo inclui uma seção "Resultado já calculado", com a Estimativa
+  preliminar de Equity Value (quando existir) e o Índice de Prontidão que um
+  motor determinístico já produziu, ANTES desta análise. Use esses números
+  só como contexto para sua leitura qualitativa. Você NUNCA deve: recalcular
+  qualquer método de valuation; alterar ou contestar o valuation; propor um
+  valor numérico alternativo de valuation como se fosse um resultado do
+  sistema; alterar pesos de qualquer fórmula; alterar o Índice de Prontidão
+  ou decidir se algum item conta para ele; afirmar que um documento é
+  juridicamente válido ou que um dado contábil foi auditado — nenhuma dessas
+  ações é sua função nesta análise.
+- Se a Estimativa preliminar de Equity Value estiver indisponível (nenhum
+  método de valuation aplicável), você pode comentar a condição financeira
+  subjacente como risco/contexto (ex.: EBITDA negativo, patrimônio líquido
+  negativo), mas NUNCA deve inventar ou sugerir um valor numérico de
+  valuation nesse caso.
 - Escreva cada item das listas como uma frase curta e objetiva, em
   português, sem markdown.`;
 
@@ -161,13 +172,36 @@ function montarSecaoResultadoCalculado({
   valuation,
   prontidao,
 }: ResultadoNumericoParaContexto): string {
+  const motivoIndisponivel: string[] = [];
+  if (!valuation.aplicabilidade.multiplos) {
+    motivoIndisponivel.push(
+      `Múltiplo de EBITDA e DCF simplificado não aplicáveis (EBITDA-base ${
+        valuation.ebitdaBaseUtilizado !== null
+          ? formatBRL(valuation.ebitdaBaseUtilizado)
+          : "não informado"
+      })`,
+    );
+  }
+  if (!valuation.aplicabilidade.patrimonial) {
+    motivoIndisponivel.push(
+      `Patrimonial não aplicável ao consolidado (Patrimônio Líquido ${
+        valuation.valuationPatrimonial !== null
+          ? formatBRL(valuation.valuationPatrimonial)
+          : "não informado"
+      })`,
+    );
+  }
+
   return [
-    "## Resultado já calculado (contexto de leitura — não recalcule)",
-    `- Múltiplo de EBITDA: ${valuation.valuationEbitda !== null ? formatBRL(valuation.valuationEbitda) : "não aplicável (sem EBITDA base)"}`,
-    `- Fluxo de caixa descontado simplificado: ${valuation.valuationDcf !== null ? formatBRL(valuation.valuationDcf) : "não aplicável (sem EBITDA base)"}`,
-    `- Patrimonial: ${formatBRL(valuation.valuationPatrimonial)}`,
-    `- Valuation consolidado (50% EBITDA + 30% DCF + 20% patrimonial): ${valuation.valuationFinal !== null ? formatBRL(valuation.valuationFinal) : "não aplicável"}`,
-    `- Índice de Prontidão para M&A: ${prontidao.indiceGeral.toFixed(0)}% (Financeiro ${prontidao.dimensoes.financeiro.nota}%, Operacional ${prontidao.dimensoes.operacional.nota}%, Mercado ${prontidao.dimensoes.mercado.nota}%, Documental ${prontidao.dimensoes.documental.nota}%)`,
+    "## Resultado já calculado (contexto de leitura — não recalcule, não conteste, não proponha valor alternativo)",
+    `- Múltiplo de EBITDA (Equity Value, dívida líquida já descontada): ${valuation.aplicabilidade.multiplos && valuation.valuationEbitda !== null ? formatBRL(valuation.valuationEbitda) : "não aplicável"}`,
+    `- DCF simplificado (Equity Value, dívida líquida já descontada): ${valuation.aplicabilidade.dcf && valuation.valuationDcf !== null ? formatBRL(valuation.valuationDcf) : "não aplicável"}`,
+    `- Patrimonial (Equity Value): ${valuation.valuationPatrimonial !== null ? formatBRL(valuation.valuationPatrimonial) : "não informado"}${!valuation.aplicabilidade.patrimonial ? " (não aplicável ao consolidado)" : ""}`,
+    `- Estimativa preliminar de Equity Value (50% Múltiplo + 30% DCF + 20% Patrimonial): ${valuation.aplicabilidade.consolidadoDisponivel && valuation.valuationFinal !== null ? formatBRL(valuation.valuationFinal) : "indisponível pelo modelo simplificado"}`,
+    ...(motivoIndisponivel.length > 0
+      ? [`- Motivo da indisponibilidade: ${motivoIndisponivel.join("; ")}.`]
+      : []),
+    `- Índice de Prontidão Informacional para M&A: ${prontidao.indiceGeral.toFixed(0)}% (Financeiro ${prontidao.dimensoes.financeiro.nota.toFixed(0)}%, Operacional ${prontidao.dimensoes.operacional.nota.toFixed(0)}%, Mercado ${prontidao.dimensoes.mercado.nota.toFixed(0)}%, Documental ${prontidao.dimensoes.documental.nota.toFixed(0)}%) — mede disponibilidade e estruturação da informação, não a qualidade do negócio.`,
   ].join("\n");
 }
 
@@ -202,11 +236,12 @@ function montarSecaoFinanceiro(dados: DadosProcesso): string {
     anos.length > 0
       ? anos
           .map((ano) => {
+            const ebitda = ano.ebitda ?? null;
             const margem =
-              ano.receitaBruta > 0
-                ? `${((ano.ebitda / ano.receitaBruta) * 100).toFixed(1)}%`
+              ebitda !== null && ano.receitaBruta > 0
+                ? `${((ebitda / ano.receitaBruta) * 100).toFixed(1)}%`
                 : "N/A";
-            return `  - ${ano.ano}: receita bruta ${formatBRL(ano.receitaBruta)}, EBITDA ${formatBRL(ano.ebitda)} (margem ${margem}), lucro líquido ${formatBRL(ano.lucroLiquido)}`;
+            return `  - ${ano.ano}: receita bruta ${formatBRL(ano.receitaBruta)}, EBITDA ${ebitda !== null ? formatBRL(ebitda) : "não informado"} (margem ${margem}), lucro líquido ${formatBRL(ano.lucroLiquido)}`;
           })
           .join("\n")
       : "  - Nenhum ano do DRE foi preenchido.";
@@ -221,6 +256,13 @@ function montarSecaoFinanceiro(dados: DadosProcesso): string {
           .join("\n")
       : "  - Nenhuma dívida cadastrada.";
 
+  const situacaoDivida =
+    financeiro.possuiDividas === "sim"
+      ? "possui dívidas financeiras"
+      : financeiro.possuiDividas === "nao"
+        ? "declarou não possuir dívidas financeiras"
+        : "não informada";
+
   return [
     "## Financeiro",
     "DRE (anos com dados preenchidos):",
@@ -230,8 +272,10 @@ function montarSecaoFinanceiro(dados: DadosProcesso): string {
     `  - Ativo circulante: ${formatBRL(financeiro.balanco.ativoCirculante)}`,
     `  - Passivo total: ${formatBRL(financeiro.balanco.passivoTotal)}`,
     `  - Passivo circulante: ${formatBRL(financeiro.balanco.passivoCirculante)}`,
-    `  - Patrimônio líquido: ${formatBRL(financeiro.balanco.patrimonioLiquido)}`,
-    "Dívidas e financiamentos:",
+    `  - Patrimônio líquido: ${financeiro.balanco.patrimonioLiquido !== undefined ? formatBRL(financeiro.balanco.patrimonioLiquido) : "não informado"}`,
+    `  - Caixa e equivalentes de caixa: ${financeiro.caixaEquivalentes !== undefined ? formatBRL(financeiro.caixaEquivalentes) : "não informado"}`,
+    `  - Situação de dívida financeira: ${situacaoDivida}`,
+    "Dívidas e financiamentos detalhados:",
     dividas,
   ].join("\n");
 }

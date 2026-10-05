@@ -21,9 +21,10 @@ export function ScoreGauge({ indiceGeral }: { indiceGeral: number }) {
       </div>
 
       <p className="text-xs text-zinc-500">
-        Percentual de preparação e estruturação das informações necessárias
-        para uma análise preliminar. Não é uma avaliação da qualidade da
-        empresa.
+        O índice representa o nível de disponibilidade, estruturação e
+        validade básica das informações necessárias para uma análise
+        preliminar. Ele não representa a qualidade absoluta da empresa nem
+        certifica a veracidade das informações.
       </p>
     </div>
   );

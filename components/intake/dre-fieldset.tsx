@@ -3,6 +3,7 @@
 import {
   useFieldArray,
   type Control,
+  type FieldErrors,
   type UseFormRegister,
 } from "react-hook-form";
 import { MoneyInput } from "@/components/intake/money-input";
@@ -34,9 +35,11 @@ const DRE_CAMPOS: {
 export function DreFieldset({
   control,
   register,
+  errors,
 }: {
   control: Control<FinanceiroFormValues>;
   register: UseFormRegister<FinanceiroFormValues>;
+  errors: FieldErrors<FinanceiroFormValues>;
 }) {
   const { fields } = useFieldArray({ control, name: "dre" });
 
@@ -73,6 +76,11 @@ export function DreFieldset({
                   name={`dre.${index}.${name}`}
                   className={inputClass}
                 />
+                {errors.dre?.[index]?.[name] && (
+                  <span className="text-xs text-red-600">
+                    {errors.dre[index]?.[name]?.message}
+                  </span>
+                )}
               </label>
             ))}
           </div>

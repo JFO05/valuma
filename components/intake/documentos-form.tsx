@@ -16,9 +16,12 @@ import {
 } from "@/components/intake/documento-upload-progress";
 import {
   BUCKET_DOCUMENTOS,
+  calcularHashArquivo,
+  encontrarDuplicata,
   parseDocumentosData,
   sanitizeFileName,
   validarArquivo,
+  type CategoriaDocumento,
   type DocumentoArquivo,
 } from "@/lib/intake/schema-documentos";
 import type { AutosaveStatus } from "@/lib/hooks/useAutosave";
@@ -136,12 +139,22 @@ export function DocumentosForm({
           },
         });
 
+        // Hash de conteúdo (RG-36/1.4): usado só para detectar duplicidade ao
+        // categorizar o documento (ver handleCategoriaChange abaixo). Melhor
+        // esforço — crypto.subtle exige contexto seguro (https/localhost);
+        // sem ele, o documento simplesmente não participa da checagem.
+        const hash =
+          typeof crypto !== "undefined" && crypto.subtle
+            ? await calcularHashArquivo(file).catch(() => undefined)
+            : undefined;
+
         const novoDocumento: DocumentoArquivo = {
           nome: file.name,
           path,
           tamanho: file.size,
           tipo: file.type,
           enviadoEm: new Date().toISOString(),
+          hash,
         };
 
         await persistir([...arquivosRef.current, novoDocumento]);
@@ -161,6 +174,61 @@ export function DocumentosForm({
         );
       }
     }
+  }
+
+  async function handleCategoriaChange(documento: DocumentoArquivo, categoria: CategoriaDocumento) {
+    // RG-36: duplicidade é avaliada por hash + categoria — só faz sentido
+    // checar no momento em que a categoria é escolhida (é quando o par
+    // hash+categoria passa a existir de fato).
+    if (documento.hash) {
+      const outros = arquivosRef.current.filter((a) => a.path !== documento.path);
+      const duplicata = encontrarDuplicata(outros, { hash: documento.hash, categoria });
+
+      if (duplicata) {
+        // Sem um terceiro botão disponível no diálogo de confirmação, a
+        // escolha de 3 vias (substituir / manter complementar / cancelar)
+        // é feita em duas perguntas sequenciais, cada uma com só 2 opções.
+        const manterOsDois = await confirm({
+          titulo: "Documento duplicado nesta categoria",
+          mensagem: `"${duplicata.nome}" já está nesta categoria e parece ser o mesmo arquivo. Manter os dois como complementares? (não conta como duas categorias diferentes na Prontidão)`,
+          confirmarLabel: "Manter os dois",
+        });
+
+        if (!manterOsDois) {
+          const substituir = await confirm({
+            titulo: "Substituir documento existente?",
+            mensagem: `Deseja substituir "${duplicata.nome}" por este novo documento?`,
+            confirmarLabel: "Substituir",
+          });
+
+          if (!substituir) return; // cancelar: não atribui a categoria
+
+          setRemovendoPath(duplicata.path);
+          const supabase = createClient();
+          await supabase.storage.from(BUCKET_DOCUMENTOS).remove([duplicata.path]);
+          setRemovendoPath(null);
+
+          const semODuplicado = arquivosRef.current.filter((a) => a.path !== duplicata.path);
+          await persistir(
+            semODuplicado.map((a) => (a.path === documento.path ? { ...a, categoria } : a)),
+          );
+          return;
+        }
+        // "Manter os dois": segue para atribuir a categoria normalmente.
+      }
+    }
+
+    await persistir(
+      arquivosRef.current.map((a) => (a.path === documento.path ? { ...a, categoria } : a)),
+    );
+  }
+
+  async function handlePeriodoChange(documento: DocumentoArquivo, periodoReferencia: string) {
+    await persistir(
+      arquivosRef.current.map((a) =>
+        a.path === documento.path ? { ...a, periodoReferencia: periodoReferencia || undefined } : a,
+      ),
+    );
   }
 
   async function handleRemover(documento: DocumentoArquivo) {
@@ -242,6 +310,8 @@ export function DocumentosForm({
               documento={documento}
               removendo={removendoPath === documento.path}
               onRemover={() => handleRemover(documento)}
+              onCategoriaChange={(categoria) => handleCategoriaChange(documento, categoria)}
+              onPeriodoChange={(periodo) => handlePeriodoChange(documento, periodo)}
             />
           ))}
         </ul>

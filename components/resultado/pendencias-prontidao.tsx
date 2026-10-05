@@ -41,7 +41,13 @@ export function PendenciasProntidao({
     .map((chave) => ({ chave, ...prontidao.dimensoes[chave] }))
     .filter((dimensao) => dimensao.pendencias.length > 0);
 
-  if (dimensoesComPendencia.length === 0) {
+  const dimensoesComAlerta = (
+    Object.keys(prontidao.dimensoes) as (keyof ResultadoProntidao["dimensoes"])[]
+  )
+    .map((chave) => ({ chave, ...prontidao.dimensoes[chave] }))
+    .filter((dimensao) => dimensao.alertas.length > 0);
+
+  if (dimensoesComPendencia.length === 0 && dimensoesComAlerta.length === 0) {
     return (
       <p className="text-sm text-zinc-500">
         Todas as informações usadas no Índice de Prontidão estão preenchidas.
@@ -50,25 +56,52 @@ export function PendenciasProntidao({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
-      {dimensoesComPendencia.map((dimensao) => (
-        <li
-          key={dimensao.chave}
-          className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <span>
-            <strong>{ROTULO_DIMENSAO[dimensao.chave]}</strong>: faltam{" "}
-            {dimensao.pendencias.length} de {dimensao.esperados} informações
-            ({dimensao.validos} preenchidas)
-          </span>
-          <Link
-            href={`/intake/${processoId}/${FASE_DIMENSAO[dimensao.chave]}#${ancoraDoItemProntidao(dimensao.pendencias[0])}`}
-            className="w-fit shrink-0 text-ink underline dark:text-accent"
-          >
-            Completar em {FASE_LABELS[FASE_DIMENSAO[dimensao.chave]]}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      {dimensoesComPendencia.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {dimensoesComPendencia.map((dimensao) => (
+            <li
+              key={dimensao.chave}
+              className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span>
+                <strong>{ROTULO_DIMENSAO[dimensao.chave]}</strong>: faltam{" "}
+                {dimensao.pendencias.length} de {dimensao.esperados} informações
+                ({dimensao.validos} preenchidas, {dimensao.nota.toFixed(0)}%)
+              </span>
+              <Link
+                href={`/intake/${processoId}/${FASE_DIMENSAO[dimensao.chave]}#${ancoraDoItemProntidao(dimensao.pendencias[0])}`}
+                className="w-fit shrink-0 text-ink underline dark:text-accent"
+              >
+                Completar em {FASE_LABELS[FASE_DIMENSAO[dimensao.chave]]}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {dimensoesComAlerta.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {dimensoesComAlerta.map((dimensao) => (
+            <li
+              key={`alerta-${dimensao.chave}`}
+              className="flex flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="text-amber-900 dark:text-amber-200">
+                <strong>{ROTULO_DIMENSAO[dimensao.chave]}</strong>: {dimensao.alertas.length}{" "}
+                {dimensao.alertas.length === 1 ? "informação precisa" : "informações precisam"}{" "}
+                de revisão — {dimensao.alertas.map((a) => a.label).join(", ")}
+              </span>
+              <Link
+                href={`/intake/${processoId}/${FASE_DIMENSAO[dimensao.chave]}#${ancoraDoItemProntidao(dimensao.alertas[0])}`}
+                className="w-fit shrink-0 text-amber-900 underline dark:text-amber-200"
+              >
+                Revisar em {FASE_LABELS[FASE_DIMENSAO[dimensao.chave]]}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

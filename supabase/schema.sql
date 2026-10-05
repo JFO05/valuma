@@ -382,7 +382,7 @@ create table public.resultados (
 );
 
 comment on table public.resultados is 'Resultado consolidado (valuation + score + análise de IA) de um processo — um por processo_id, upsert a cada geração.';
-comment on column public.resultados.analise_ia is 'jsonb no formato {pontosFortes: string[], riscos: string[], recomendacoes: string[]}.';
+comment on column public.resultados.analise_ia is 'jsonb no formato {pontosFortes: string[], riscos: string[], recomendacoes: string[], erro?: boolean, explicabilidade?: {...}}. NÃO contém mais a versão do modelo (ver coluna modelo_versao) — RG-47 exige que o versionamento seja independente do JSON da IA.';
 
 alter table public.resultados enable row level security;
 
@@ -435,3 +435,49 @@ create policy "resultados_delete_own" on public.resultados
         and p.user_id = auth.uid()
     )
   );
+
+-- =============================================================================
+-- MIGRAÇÃO: Regra de Negócio v1.0 — valuation nullable + atualizado_em
+-- =============================================================================
+-- RG-24/RG-25 (docs/REGRAS_NEGOCIO_VALUMA_V1.md): o consolidado e cada
+-- método individual agora podem legitimamente não existir (método/consolidado
+-- não aplicável) em vez de sempre carregar um número — as 4 colunas abaixo
+-- deixam de ser `not null`. `null` nunca é substituído por `0`: 0 é uma
+-- estimativa real, null é "não aplicável".
+
+alter table public.resultados alter column valuation_final drop not null;
+alter table public.resultados alter column valuation_ebitda drop not null;
+alter table public.resultados alter column valuation_dcf drop not null;
+alter table public.resultados alter column valuation_patrimonial drop not null;
+
+-- RG-46: "resultado desatualizado" precisa comparar contra o momento em que
+-- o resultado foi de fato (re)gerado — `created_at` não serve porque um
+-- upsert (Gerar Resultado/Recalcular) NÃO atualiza `created_at` (ele só é
+-- setado no insert original). Reaproveita a mesma função de trigger já usada
+-- por `intake_data.atualizado_em` (set_atualizado_em, definida acima).
+
+alter table public.resultados add column if not exists atualizado_em timestamptz not null default now();
+
+comment on column public.resultados.atualizado_em is 'Momento da última geração/recálculo — usado para detectar "resultado desatualizado" (RG-46), comparando com o MAX(intake_data.atualizado_em) do mesmo processo.';
+
+drop trigger if exists set_resultados_atualizado_em on public.resultados;
+
+create trigger set_resultados_atualizado_em
+  before update on public.resultados
+  for each row
+  execute function public.set_atualizado_em();
+
+-- =============================================================================
+-- MIGRAÇÃO: versionamento do modelo independente da IA (RG-47, DIV-02)
+-- =============================================================================
+-- A versão da Regra de Negócio que gerou um resultado precisa ser
+-- independente do JSON da IA (achado da auditoria pós-implementação:
+-- `analise_ia.versao` violava isso, pois vivia dentro do mesmo jsonb da
+-- análise qualitativa). Coluna própria, nunca escrita/lida a partir de
+-- `analise_ia` — ver lib/valuation/resultados.ts::ehResultadoLegado.
+-- NULL = resultado legado (gerado antes desta coluna existir, ou sem
+-- versão registrada).
+
+alter table public.resultados add column if not exists modelo_versao text;
+
+comment on column public.resultados.modelo_versao is 'Versão explícita da Regra de Negócio/motor que gerou este resultado (RG-47) — independente de analise_ia (JSON da IA). NULL = resultado legado (gerado antes do versionamento explícito, ou antes desta coluna existir).';

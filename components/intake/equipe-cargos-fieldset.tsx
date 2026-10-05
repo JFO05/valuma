@@ -74,6 +74,11 @@ export function EquipeCargosFieldset({
               })}
               className={inputClass}
             />
+            {errors.cargosEquipe?.[index]?.quantidade && (
+              <span className="text-xs text-red-600">
+                {errors.cargosEquipe[index]?.quantidade?.message}
+              </span>
+            )}
           </label>
 
           <div className="flex items-end">
