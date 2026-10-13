@@ -8,6 +8,8 @@ import type { FaseIntake } from "@/lib/intake/fases";
  * checklist.ts) conforme os dados evoluem.
  */
 export const PROPOSITO_ETAPA: Record<FaseIntake, string> = {
+  motor:
+    "Define como o ValuM&A vai calcular este processo — qual motor usar, e quais métodos/premissas participam da estimativa. Não é um dado sobre a empresa, é uma configuração do cálculo.",
   perfil:
     "Esses dados identificam a empresa nas telas e documentos gerados. Não entram no cálculo da estimativa de valuation nem do Índice de Prontidão.",
   financeiro:

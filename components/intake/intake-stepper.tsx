@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FASES_INTAKE, FASE_LABELS, type FaseIntake } from "@/lib/intake/fases";
+import { faseBloqueada } from "@/lib/intake/navegacao";
 
 export function IntakeStepper({
   processoId,
@@ -24,38 +25,56 @@ export function IntakeStepper({
         const isAtual = fase === faseAtual;
         const isVisitada = fasesComDados.includes(fase);
         const temPendencia = fasesComPendencia?.has(fase) ?? false;
+        const bloqueada = faseBloqueada(fase, fasesComPendencia ?? new Set());
+
+        const indicador = (
+          <span
+            className={[
+              "flex h-5 w-5 items-center justify-center rounded-full border text-xs",
+              temPendencia
+                ? "border-amber-500 text-amber-600 dark:border-amber-400 dark:text-amber-400"
+                : isVisitada
+                  ? "border-accent/40 text-accent"
+                  : "",
+            ].join(" ")}
+            aria-hidden={temPendencia ? undefined : "true"}
+            aria-label={temPendencia ? "Faltam campos obrigatórios" : undefined}
+          >
+            {bloqueada ? "🔒" : temPendencia ? "!" : isVisitada ? "✓" : index + 1}
+          </span>
+        );
 
         return (
           <li key={fase}>
-            <Link
-              href={`/intake/${processoId}/${fase}`}
-              aria-current={isAtual ? "step" : undefined}
-              title={
-                temPendencia
-                  ? "Faltam campos obrigatórios nesta etapa"
-                  : undefined
-              }
-              className={[
-                "flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                isAtual
-                  ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                  : "border-zinc-300 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300",
-              ].join(" ")}
-            >
+            {bloqueada ? (
               <span
-                className={[
-                  "flex h-5 w-5 items-center justify-center rounded-full border text-xs",
-                  temPendencia
-                    ? "border-amber-500 text-amber-600 dark:border-amber-400 dark:text-amber-400"
-                    : "",
-                ].join(" ")}
-                aria-hidden={temPendencia ? undefined : "true"}
-                aria-label={temPendencia ? "Faltam campos obrigatórios" : undefined}
+                aria-disabled="true"
+                title="Preencha os campos obrigatórios da etapa anterior primeiro"
+                className="flex cursor-not-allowed items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-400 dark:border-zinc-800 dark:text-zinc-600"
               >
-                {temPendencia ? "!" : isVisitada ? "✓" : index + 1}
+                {indicador}
+                {FASE_LABELS[fase]}
               </span>
-              {FASE_LABELS[fase]}
-            </Link>
+            ) : (
+              <Link
+                href={`/intake/${processoId}/${fase}`}
+                aria-current={isAtual ? "step" : undefined}
+                title={
+                  temPendencia
+                    ? "Faltam campos obrigatórios nesta etapa"
+                    : undefined
+                }
+                className={[
+                  "flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                  isAtual
+                    ? "border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-black"
+                    : "border-zinc-300 text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300",
+                ].join(" ")}
+              >
+                {indicador}
+                {FASE_LABELS[fase]}
+              </Link>
+            )}
           </li>
         );
       })}

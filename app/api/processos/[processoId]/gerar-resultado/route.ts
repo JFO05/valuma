@@ -7,6 +7,8 @@ import { analisarComIA } from "@/lib/ai/analisar";
 import { mapRowParaResultadoValuation } from "@/lib/valuation/resultados";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
 import { MODEL_VERSION, type ResultadoValuation } from "@/lib/valuation/types";
+import { configuracaoMotorValida } from "@/lib/valuation/motor";
+import { configuracaoMotorParaCalculo } from "@/lib/intake/schema-motor";
 
 export async function POST(
   _request: Request,
@@ -56,7 +58,23 @@ export async function POST(
     );
   }
 
-  const valuation = calcularValuation(dados);
+  // V2 — Motor de Análise: o Motor Configurável exige pelo menos 1 método
+  // ativo com os pesos somando 100% entre os ativos (seção 2.2 do prompt de
+  // evolução). Checado aqui também (não só na UI) pelo mesmo motivo de
+  // verificarCamposObrigatorios acima — a rota é alcançável por qualquer
+  // request HTTP. O Motor Essencial sempre passa (pesos fixos já somam 100%).
+  const configuracaoCalculo = configuracaoMotorParaCalculo(dados.motor.configuracao);
+  if (!configuracaoMotorValida(dados.motor.tipo, configuracaoCalculo)) {
+    return NextResponse.json(
+      {
+        error:
+          "A configuração do Motor Configurável é inválida — ative pelo menos 1 método e ajuste os pesos para totalizar 100% entre os métodos ativos antes de gerar o resultado.",
+      },
+      { status: 422 },
+    );
+  }
+
+  const valuation = calcularValuation(dados, configuracaoCalculo);
   const prontidao = calcularProntidao(dados);
 
   // RG-25/RG-26: mesmo com NENHUM método de valuation aplicável, o
@@ -78,6 +96,10 @@ export async function POST(
     valuationDcf: valuation.valuationDcf,
     valuationPatrimonial: valuation.valuationPatrimonial,
     modeloVersao: MODEL_VERSION,
+    // V2: snapshot do Motor usado NESTA geração — independente da fase
+    // "motor" atual do intake (se o usuário mudar o Motor depois, este
+    // resultado continua mostrando o que foi realmente usado pra calculá-lo).
+    motorSnapshot: { tipo: dados.motor.tipo, configuracao: configuracaoCalculo },
     aplicabilidade: valuation.aplicabilidade,
     scoreTotal: prontidao.indiceGeral,
     scoreFinanceiro: prontidao.dimensoes.financeiro.nota,
@@ -106,6 +128,7 @@ export async function POST(
         valuation_dcf: resultado.valuationDcf,
         valuation_patrimonial: resultado.valuationPatrimonial,
         modelo_versao: resultado.modeloVersao,
+        motor_snapshot: resultado.motorSnapshot,
         score_total: resultado.scoreTotal,
         score_financeiro: resultado.scoreFinanceiro,
         score_operacao: resultado.scoreOperacao,

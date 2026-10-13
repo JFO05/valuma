@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
-import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
+import { IntakeNavButtons } from "@/components/intake/intake-nav-buttons";
 import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { ConcorrentesFieldset } from "@/components/intake/concorrentes-fieldset";
 import { MoneyInput } from "@/components/intake/money-input";
@@ -105,7 +105,13 @@ export function MercadoForm({
         ultimoSalvamento={ultimoSalvamento}
         onTentarNovamente={tentarNovamente}
       />
-      <VoltarDashboardButton status={status} />
+      {/* Mercado não tem campos mínimos (RG-43) — "Próximo" nunca bloqueia aqui. */}
+      <IntakeNavButtons
+        processoId={processoId}
+        faseAtual="mercado"
+        status={status}
+        podeAvancar
+      />
     </form>
   );
 }

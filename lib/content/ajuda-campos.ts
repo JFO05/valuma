@@ -76,6 +76,40 @@ export const AJUDA_CAMPOS: Record<string, AjudaCampo> = {
     comoInfluencia:
       "Não entra na estimativa de valuation. Conta na dimensão Mercado do Índice de Prontidão e ajuda a IA a compor a análise qualitativa.",
   },
+  motorMultiploEbitda: {
+    titulo: "Múltiplo de EBITDA",
+    oQueE:
+      "O fator que multiplica o EBITDA do exercício-base para estimar o valor da operação (Enterprise Value) pelo método de Múltiplo de EBITDA.",
+    comoInfluencia:
+      "No Motor Essencial o ValuM&A utiliza 4,0x como premissa simplificada do MVP — não é uma cotação de mercado real. No Motor Configurável, você pode ajustar esse número, mas o método continua exigindo EBITDA positivo para ser aplicável.",
+  },
+  motorCrescimentoAnual: {
+    titulo: "Crescimento anual (DCF simplificado)",
+    oQueE:
+      "A taxa de crescimento aplicada ao EBITDA-base em cada um dos anos projetados no DCF simplificado.",
+    comoInfluencia:
+      "No Motor Essencial é fixa em 3% a.a. Quanto maior, maior tende a ser o Equity Value estimado pelo DCF — mas isso não muda a condição de aplicabilidade do método (continua exigindo EBITDA positivo).",
+  },
+  motorTaxaDesconto: {
+    titulo: "Taxa de desconto (DCF simplificado)",
+    oQueE:
+      "A taxa usada para trazer os fluxos futuros projetados a valor presente — uma proxy simplificada do risco do negócio.",
+    comoInfluencia:
+      "No Motor Essencial é fixa em 15% a.a. Quanto maior, menor tende a ser o Equity Value estimado pelo DCF (fluxos futuros valem menos hoje).",
+  },
+  motorHorizonteAnos: {
+    titulo: "Horizonte de projeção (DCF simplificado)",
+    oQueE: "Por quantos anos o DCF simplificado projeta o fluxo de caixa.",
+    comoInfluencia:
+      "No Motor Essencial são 5 anos, sem valor terminal/perpetuidade — o modelo não captura o valor da empresa além desse horizonte, por isso tende a ser conservador para empresas em continuidade.",
+  },
+  motorPonderacao: {
+    titulo: "Ponderação dos métodos",
+    oQueE:
+      "O peso de cada método ativo na Estimativa preliminar de Equity Value consolidada.",
+    comoInfluencia:
+      "No Motor Essencial é fixo em 50% Múltiplo + 30% DCF simplificado + 20% Patrimonial. No Motor Configurável, os pesos dos métodos ativos precisam somar exatamente 100% — sem isso, o sistema não gera o consolidado.",
+  },
   documentos: {
     titulo: "Documentos",
     oQueE:

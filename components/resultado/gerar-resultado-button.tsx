@@ -69,8 +69,8 @@ export function GerarResultadoButton({
 
   const classeBotao =
     variante === "primario"
-      ? "rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-      : "rounded border border-zinc-300 px-4 py-2 text-sm font-medium dark:border-zinc-700";
+      ? "rounded-full bg-ink px-6 py-3 text-sm font-medium text-white transition-transform duration-300 active:scale-[0.98] dark:bg-white dark:text-black"
+      : "rounded-full border border-zinc-300 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-50 dark:hover:border-zinc-600";
 
   return (
     <div className="print:hidden flex flex-col items-center gap-2">

@@ -61,7 +61,16 @@ export const POSSUI_DIVIDAS_OPTIONS = ["sim", "nao"] as const;
 export type PossuiDividas = (typeof POSSUI_DIVIDAS_OPTIONS)[number];
 
 export const financeiroSchema = z.object({
-  dre: z.array(dreAnoSchema).length(3, "Preencha os 3 anos"),
+  // V2 (seção 5 do prompt de evolução): anos deixam de ser uma lista fixa de
+  // 3 — o usuário pode remover/adicionar anos livremente, desde que sobre
+  // pelo menos 1. Duplicidade de ano é bloqueada aqui, não só na UI.
+  dre: z
+    .array(dreAnoSchema)
+    .min(1, "Informe ao menos 1 ano")
+    .refine(
+      (anos) => new Set(anos.map((a) => a.ano)).size === anos.length,
+      { message: "Não é possível repetir o mesmo ano." },
+    ),
   balanco: balancoSchema,
   // Caixa e equivalentes de caixa (RG-13): "recursos de alta liquidez
   // disponíveis pela empresa, como caixa e saldos bancários" — usado no
@@ -78,7 +87,7 @@ export const financeiroSchema = z.object({
 
 export type FinanceiroFormValues = z.infer<typeof financeiroSchema>;
 
-function anoAtual() {
+export function anoAtual() {
   return new Date().getFullYear();
 }
 

@@ -21,9 +21,11 @@
  */
 import type { DadosProcesso } from "../lib/valuation/types";
 import { calcularValuation } from "../lib/valuation/calcular";
+import { motorDefaultValues } from "../lib/intake/schema-motor";
 
 const dadosExemplo: DadosProcesso = {
   processoId: "exemplo-manual",
+  motor: motorDefaultValues,
   perfil: {
     razaoSocial: "Comércio de Peças ABC Ltda",
     nomeFantasia: "ABC Peças",

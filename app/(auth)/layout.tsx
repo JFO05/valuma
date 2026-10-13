@@ -14,8 +14,12 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-900/5 px-6 py-4 dark:border-white/5">
+    <div className="relative flex flex-1 flex-col overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="glow-accent pointer-events-none absolute inset-x-0 top-0 h-[28rem]"
+      />
+      <header className="relative flex items-center justify-between border-b border-zinc-900/5 px-6 py-4 dark:border-white/5">
         <Link
           href="/"
           className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50"
@@ -24,7 +28,7 @@ export default function AuthLayout({
         </Link>
         <ThemeToggle />
       </header>
-      <div className="flex flex-1 flex-col">{children}</div>
+      <div className="relative flex flex-1 flex-col">{children}</div>
     </div>
   );
 }

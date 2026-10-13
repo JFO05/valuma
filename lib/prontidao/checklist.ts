@@ -122,21 +122,42 @@ const CAMPOS_DRE_COM_SINAL: { campo: "lucroBruto" | "lucroLiquido"; label: strin
   { campo: "lucroLiquido", label: "Lucro líquido" },
 ];
 
+/**
+ * V2 (anos dinâmicos, seção 5/10 do prompt de evolução): o DRE deixou de ter
+ * um array fixo de 3 posições — o usuário pode ter 1, 2, 5, 10 anos. Para que
+ * "anos financeiros adicionais não criem pontos extras" (exigência
+ * explícita), a dimensão Financeira continua avaliando sempre os mesmos 3
+ * "slots" (mais recente, intermediário, mais antigo), olhando para os 3 anos
+ * de MAIOR valor em `.ano` — nunca pela posição no array. Com menos de 3 anos
+ * cadastrados, os slots que sobram ficam "ausente" (mesmo comportamento de
+ * hoje quando um dos 3 anos fixos nunca era preenchido).
+ */
+function anoNoSlot(
+  dre: DadosProcesso["financeiro"]["dre"],
+  slot: number,
+): DreAnoFormValues | undefined {
+  return [...dre].sort((a, b) => b.ano - a.ano)[slot];
+}
+
 function itensDre(): ItemChecklistProntidao[] {
   const itens: ItemChecklistProntidao[] = [];
 
-  for (let indice = 0; indice < 3; indice++) {
-    const rotuloAno = RECEITA_LABEL_POR_INDICE[indice];
+  for (let slot = 0; slot < 3; slot++) {
+    const rotuloAno = RECEITA_LABEL_POR_INDICE[slot];
 
     for (const { campo, label } of CAMPOS_DRE_NAO_NEGATIVOS) {
       itens.push({
-        id: `financeiro.dre.${indice}.${campo}`,
+        // Âncora aponta pro fieldset do DRE como um todo, não mais pra um
+        // índice fixo: com anos dinâmicos, "o 2º ano mais recente" pode estar
+        // em qualquer posição do array a cada render, então não existe mais
+        // um id de campo estático correspondente (trade-off documentado).
+        id: `financeiro.dre.slot${slot}.${campo}`,
         dimensao: "financeiro",
         fase: "financeiro",
-        campo: `financeiro.dre[${indice}].${campo}`,
+        campo: "financeiro.dre",
         label: `${label} — DRE, ${rotuloAno}`,
         avaliar: (dados) => {
-          const valor = dados.financeiro.dre[indice]?.[campo];
+          const valor = anoNoSlot(dados.financeiro.dre, slot)?.[campo];
           return binario(typeof valor === "number" && valor > 0);
         },
       });
@@ -144,13 +165,13 @@ function itensDre(): ItemChecklistProntidao[] {
 
     for (const { campo, label } of CAMPOS_DRE_COM_SINAL) {
       itens.push({
-        id: `financeiro.dre.${indice}.${campo}`,
+        id: `financeiro.dre.slot${slot}.${campo}`,
         dimensao: "financeiro",
         fase: "financeiro",
-        campo: `financeiro.dre[${indice}].${campo}`,
+        campo: "financeiro.dre",
         label: `${label} — DRE, ${rotuloAno}`,
         avaliar: (dados) => {
-          const valor = dados.financeiro.dre[indice]?.[campo];
+          const valor = anoNoSlot(dados.financeiro.dre, slot)?.[campo];
           return binario(numeroInformado(valor as number | undefined));
         },
       });
@@ -159,13 +180,13 @@ function itensDre(): ItemChecklistProntidao[] {
     // EBITDA (RG-33): zero ou negativo, quando explicitamente informado,
     // conta como preenchido — diferente dos demais campos do DRE acima.
     itens.push({
-      id: `financeiro.dre.${indice}.ebitda`,
+      id: `financeiro.dre.slot${slot}.ebitda`,
       dimensao: "financeiro",
       fase: "financeiro",
-      campo: `financeiro.dre[${indice}].ebitda`,
+      campo: "financeiro.dre",
       label: `EBITDA — DRE, ${rotuloAno}`,
       avaliar: (dados) =>
-        binario(informadoExplicitamente(dados.financeiro.dre[indice]?.ebitda)),
+        binario(informadoExplicitamente(anoNoSlot(dados.financeiro.dre, slot)?.ebitda)),
     });
   }
 
@@ -407,6 +428,10 @@ export function ancoraDoItemProntidao(
   item: Pick<PendenciaProntidao, "id" | "dimensao">,
 ): string {
   if (item.dimensao === "documental") return "documentos.arquivos";
+  // V2 (anos dinâmicos): itens do DRE não têm mais um índice de array fixo
+  // correspondente (ver itensDre acima) — a âncora aponta pro fieldset do
+  // DRE inteiro, não pra um campo específico.
+  if (item.id.startsWith("financeiro.dre.slot")) return "financeiro.dre";
   return item.id;
 }
 

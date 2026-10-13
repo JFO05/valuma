@@ -1,10 +1,10 @@
 "use client";
 
-import {
-  useFieldArray,
-  type Control,
-  type FieldErrors,
-  type UseFormRegister,
+import type {
+  Control,
+  FieldArrayWithId,
+  FieldErrors,
+  UseFormRegister,
 } from "react-hook-form";
 import { MoneyInput } from "@/components/intake/money-input";
 import {
@@ -17,19 +17,29 @@ import { AjudaPopover } from "@/components/ui/ajuda-popover";
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
 
+/**
+ * Recebe `fields`/`append`/`remove` prontos de um único `useFieldArray` que
+ * vive em financeiro-form.tsx — não cria o seu próprio. Duas instâncias de
+ * `useFieldArray` para o mesmo campo (uma aqui, outra lá, mesmo
+ * control+nome) não ficam garantidamente em sincronia: a importação do
+ * Excel (RF novo) precisa de `replace()` de fora deste componente, e sem
+ * essa unificação a lista substituída não aparecia na tela.
+ */
 export function DividasFieldset({
   control,
   register,
   errors,
+  fields,
+  append,
+  remove,
 }: {
   control: Control<FinanceiroFormValues>;
   register: UseFormRegister<FinanceiroFormValues>;
   errors: FieldErrors<FinanceiroFormValues>;
+  fields: FieldArrayWithId<FinanceiroFormValues, "dividas">[];
+  append: (valor: FinanceiroFormValues["dividas"][number]) => void;
+  remove: (index: number) => void;
 }) {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "dividas",
-  });
   const { confirm, dialog } = useConfirm();
 
   async function handleRemover(index: number) {

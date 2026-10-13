@@ -46,9 +46,14 @@ export function verificarCamposObrigatorios(
   // informado, não seu sinal.
   const anoBase = anosDreComDados(dados.financeiro.dre).at(-1);
   if (!anoBase || !informadoExplicitamente(anoBase.ebitda)) {
+    // V2 (anos dinâmicos): o ano-base não é mais necessariamente o índice 0
+    // do array — calcula a posição real para a âncora apontar pro campo
+    // certo. Sem ano-base (nenhum ano com dados), aponta pro fieldset do DRE
+    // como um todo (não existe índice nenhum pra apontar).
+    const indiceAnoBase = anoBase ? dados.financeiro.dre.indexOf(anoBase) : -1;
     pendencias.push({
       fase: "financeiro",
-      campo: "financeiro.dre.0.ebitda",
+      campo: indiceAnoBase !== -1 ? `financeiro.dre.${indiceAnoBase}.ebitda` : "financeiro.dre",
       label: "EBITDA do exercício-base",
     });
   }

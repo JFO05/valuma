@@ -120,7 +120,27 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-12 px-6 py-16">
+    <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col gap-12 px-6 py-16">
+      {/* Vídeo de fundo contínuo, atrás de toda a tela do painel (fixed,
+          não confinado a este container) — autoplay silencioso em loop,
+          com um véu escuro por cima pra manter o texto legível em qualquer
+          trecho do vídeo. */}
+      <video
+        aria-hidden="true"
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="fixed inset-0 -z-20 h-full w-full object-cover"
+      >
+        <source src="/brand/dashboard-bg.mp4" type="video/mp4" />
+      </video>
+      <div aria-hidden="true" className="fixed inset-0 -z-20 bg-[#fafaf9]/75 dark:bg-[#0a0a0a]/55" />
+
+      <div
+        aria-hidden="true"
+        className="glow-accent pointer-events-none absolute inset-x-0 top-0 -z-10 h-72"
+      />
       <Reveal className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-ink dark:text-zinc-50">
           Bem-vindo, {nomeParaSaudacao}!
@@ -130,7 +150,7 @@ export default async function DashboardPage() {
           href="/intake"
           className="group mt-3 flex items-center gap-3 rounded-full bg-ink py-1.5 pl-6 pr-1.5 text-sm font-medium text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] dark:bg-white dark:text-black"
         >
-          Novo Valuation
+          Nova avaliação
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 dark:bg-black/10">
             +
           </span>

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
-import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
+import { IntakeNavButtons } from "@/components/intake/intake-nav-buttons";
 import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { EquipeCargosFieldset } from "@/components/intake/equipe-cargos-fieldset";
 import { ClientesPrincipaisFieldset } from "@/components/intake/clientes-principais-fieldset";
@@ -151,7 +151,13 @@ export function OperacaoForm({
         ultimoSalvamento={ultimoSalvamento}
         onTentarNovamente={tentarNovamente}
       />
-      <VoltarDashboardButton status={status} />
+      {/* Operação não tem campos mínimos (RG-43) — "Próximo" nunca bloqueia aqui. */}
+      <IntakeNavButtons
+        processoId={processoId}
+        faseAtual="operacao"
+        status={status}
+        podeAvancar
+      />
     </form>
   );
 }

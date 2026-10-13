@@ -52,7 +52,7 @@ create index partners_processo_id_idx on public.partners (processo_id);
 create table public.intake_data (
   id uuid primary key default gen_random_uuid(),
   processo_id uuid not null references public.processos (id) on delete cascade,
-  fase text not null check (fase in ('perfil', 'financeiro', 'operacao', 'mercado', 'documentos')),
+  fase text not null check (fase in ('motor', 'perfil', 'financeiro', 'operacao', 'mercado', 'documentos')),
   dados jsonb not null default '{}'::jsonb,
   atualizado_em timestamptz not null default now(),
   constraint intake_data_processo_fase_key unique (processo_id, fase)
@@ -481,3 +481,29 @@ create trigger set_resultados_atualizado_em
 alter table public.resultados add column if not exists modelo_versao text;
 
 comment on column public.resultados.modelo_versao is 'Versão explícita da Regra de Negócio/motor que gerou este resultado (RG-47) — independente de analise_ia (JSON da IA). NULL = resultado legado (gerado antes do versionamento explícito, ou antes desta coluna existir).';
+
+-- =============================================================================
+-- MIGRAÇÃO: V2 — Motor de Análise (Essencial/Configurável)
+-- =============================================================================
+-- Nova etapa "motor" no intake, antes de "perfil" (prompt de evolução V2,
+-- seção 1/2). O check constraint de intake_data.fase precisa aceitar o novo
+-- valor — recriado em vez de apenas adicionado, porque Postgres não permite
+-- alterar um check constraint existente diretamente.
+
+alter table public.intake_data drop constraint if exists intake_data_fase_check;
+
+alter table public.intake_data add constraint intake_data_fase_check
+  check (fase in ('motor', 'perfil', 'financeiro', 'operacao', 'mercado', 'documentos'));
+
+-- Snapshot da configuração do Motor usada para gerar ESTE resultado
+-- especificamente (seção 4 do prompt de evolução) — nunca lido a partir da
+-- fase "motor" do intake atual, pelo mesmo motivo de modelo_versao não ler
+-- de analise_ia: se o usuário mudar o Motor depois de gerar um resultado, o
+-- resultado antigo não pode silenciosamente passar a "parecer" calculado
+-- com a configuração nova. NULL = resultado gerado antes do Motor de
+-- Análise existir — tratado como Motor Essencial (lib/valuation/motor.ts::
+-- MOTOR_SNAPSHOT_LEGADO), sem alterar nenhum número já persistido.
+
+alter table public.resultados add column if not exists motor_snapshot jsonb;
+
+comment on column public.resultados.motor_snapshot is 'Snapshot {tipo, configuracao} do Motor de Análise usado para gerar este resultado (V2) — independente da fase "motor" atual do intake. NULL = resultado legado (anterior ao Motor de Análise), tratado como Motor Essencial.';

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
-import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
+import { IntakeNavButtons } from "@/components/intake/intake-nav-buttons";
 import { SociosFieldset } from "@/components/intake/socios-fieldset";
 import { syncPartners, atualizarNomeEmpresa } from "@/app/(app)/intake/perfil-actions";
 import {
@@ -20,6 +20,8 @@ import {
 
 const inputClass =
   "rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
+const inputClassErro =
+  "rounded border border-red-500 px-3 py-2 dark:border-red-500 dark:bg-zinc-900";
 
 export function PerfilForm({
   processoId,
@@ -61,6 +63,16 @@ export function PerfilForm({
     dados,
   );
 
+  // Campos mínimos desta etapa (RG-40: razão social e setor) — checados ao
+  // vivo (não a partir do último estado salvo) para o botão "Próximo" nunca
+  // ficar um passo atrás do que o usuário acabou de digitar. `tentouAvancar`
+  // só vira true depois do primeiro clique em "Próximo" sem sucesso — antes
+  // disso o formulário fica limpo, sem vermelho num form ainda vazio.
+  const [tentouAvancar, setTentouAvancar] = useState(false);
+  const faltaRazaoSocial = !dados.razaoSocial?.trim();
+  const faltaSetor = !dados.setor?.trim();
+  const podeAvancar = !faltaRazaoSocial && !faltaSetor;
+
   // Depois que o jsonb da etapa é salvo: sincroniza a cópia normalizada de
   // sócios em public.partners, e atualiza processos.nome_empresa com a
   // razão social (esse campo começa como "Novo processo — DD/MM" e não muda
@@ -90,12 +102,20 @@ export function PerfilForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
-            Razão social
-            <input id="razaoSocial" {...register("razaoSocial")} className={inputClass} />
-            {errors.razaoSocial && (
-              <span className="text-xs text-red-600">
-                {errors.razaoSocial.message}
-              </span>
+            Razão social *
+            <input
+              id="razaoSocial"
+              {...register("razaoSocial")}
+              className={tentouAvancar && faltaRazaoSocial ? inputClassErro : inputClass}
+            />
+            {tentouAvancar && faltaRazaoSocial ? (
+              <span className="text-xs text-red-600">Campo obrigatório</span>
+            ) : (
+              errors.razaoSocial && (
+                <span className="text-xs text-red-600">
+                  {errors.razaoSocial.message}
+                </span>
+              )
             )}
           </label>
 
@@ -122,10 +142,18 @@ export function PerfilForm({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            Setor/segmento de atuação
-            <input id="setor" {...register("setor")} className={inputClass} />
-            {errors.setor && (
-              <span className="text-xs text-red-600">{errors.setor.message}</span>
+            Setor/segmento de atuação *
+            <input
+              id="setor"
+              {...register("setor")}
+              className={tentouAvancar && faltaSetor ? inputClassErro : inputClass}
+            />
+            {tentouAvancar && faltaSetor ? (
+              <span className="text-xs text-red-600">Campo obrigatório</span>
+            ) : (
+              errors.setor && (
+                <span className="text-xs text-red-600">{errors.setor.message}</span>
+              )
             )}
           </label>
 
@@ -186,7 +214,13 @@ export function PerfilForm({
         ultimoSalvamento={ultimoSalvamento}
         onTentarNovamente={tentarNovamente}
       />
-      <VoltarDashboardButton status={status} />
+      <IntakeNavButtons
+        processoId={processoId}
+        faseAtual="perfil"
+        status={status}
+        podeAvancar={podeAvancar}
+        aoTentarAvancarBloqueado={() => setTentouAvancar(true)}
+      />
     </form>
   );
 }

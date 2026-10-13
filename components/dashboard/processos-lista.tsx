@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { Menu } from "@/components/ui/menu";
 import { useConfirm } from "@/components/confirm-dialog";
 import { excluirProcesso } from "@/app/(app)/dashboard/actions";
@@ -94,7 +95,7 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
           return (
             <li
               key={processo.id}
-              className="relative flex items-center justify-between gap-3 rounded-2xl border border-zinc-900/5 bg-white p-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-premium dark:border-white/5 dark:bg-zinc-900"
+              className="group relative flex items-center justify-between gap-4 rounded-2xl border border-zinc-900/5 bg-white p-5 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:shadow-premium has-[[aria-expanded=true]]:z-20 dark:border-white/5 dark:bg-zinc-900"
             >
               <Link
                 href={destino}
@@ -106,46 +107,59 @@ export function ProcessosLista({ processos }: { processos: ProcessoResumo[] }) {
                 }
               />
 
-              <div className="flex flex-col gap-1">
-                <p className="font-medium">{processo.nomeEmpresa}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={processo.status} />
-                  {!processo.completo && (
-                    <span className="text-xs text-zinc-500">
-                      {processo.preenchidas} de {FASES_INTAKE.length} etapas
-                      preenchidas
+              <div className="flex min-w-0 flex-1 items-center gap-5">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <p className="truncate font-medium text-ink dark:text-zinc-50">
+                    {processo.nomeEmpresa}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={processo.status} />
+                    {processo.resultadoDesatualizado && (
+                      <Badge variante="atencao">Desatualizado</Badge>
+                    )}
+                    {!processo.completo && (
+                      <span className="text-xs text-zinc-500">
+                        {processo.preenchidas} de {FASES_INTAKE.length} etapas
+                      </span>
+                    )}
+                    <span className="text-xs text-zinc-400">
+                      Atualizado em{" "}
+                      {new Date(processo.atualizadoEm).toLocaleDateString("pt-BR")}
                     </span>
+                  </div>
+
+                  {/* Prévia do resultado (revisão de UX, fora da numeração
+                      das Fases 1-6): deliberadamente discreta, com
+                      "preliminar" explícito — evita a leitura de "nota de
+                      qualidade da empresa" que o Índice de Prontidão
+                      trabalha pra afastar. Só aparece quando existe mesmo um
+                      resultado gerado (não usa `completo`, que é sobre o
+                      intake, não sobre o resultado). */}
+                  {processo.temResultado && processo.indiceGeral !== null && (
+                    <p className="text-xs text-zinc-500">
+                      {processo.valuationFinal !== null
+                        ? `Estimativa preliminar: ${formatBRL(processo.valuationFinal)}`
+                        : "Estimativa de Equity Value indisponível"}
+                    </p>
                   )}
-                  <span className="text-xs text-zinc-400">
-                    Atualizado em{" "}
-                    {new Date(processo.atualizadoEm).toLocaleDateString("pt-BR")}
-                  </span>
                 </div>
 
-                {/* Prévia do resultado (revisão de UX, fora da numeração das
-                    Fases 1-6) — deliberadamente pequena e no mesmo tom de
-                    cinza do resto do card (não um número em destaque), e com
-                    "preliminar" explícito: o card não repete o disclaimer
-                    inteiro da tela de resultado, mas evita a leitura de
-                    "nota de qualidade da empresa" que o Índice de Prontidão
-                    trabalha pra afastar desde a Fase 2. Só aparece quando
-                    existe mesmo um resultado gerado (não usa `completo`, que
-                    é sobre o intake, não sobre o resultado). */}
                 {processo.temResultado && processo.indiceGeral !== null && (
-                  <p className="text-xs text-zinc-500">
-                    {processo.valuationFinal !== null
-                      ? `Estimativa preliminar: ${formatBRL(processo.valuationFinal)}`
-                      : "Estimativa de Equity Value indisponível"}
-                    {" · "}
-                    Prontidão: {processo.indiceGeral.toFixed(0)}%
-                    {processo.resultadoDesatualizado && (
-                      <span className="text-amber-700 dark:text-amber-400"> · Desatualizado</span>
-                    )}
-                  </p>
+                  <div className="hidden w-28 shrink-0 flex-col items-end gap-1 sm:flex">
+                    <span className="text-xs font-medium tabular-nums text-zinc-500">
+                      Prontidão {processo.indiceGeral.toFixed(0)}%
+                    </span>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <div
+                        className="h-full rounded-full bg-ink dark:bg-accent"
+                        style={{ width: `${Math.min(100, Math.max(0, processo.indiceGeral))}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <div className="relative z-10">
+              <div className="relative z-10 shrink-0">
                 <Menu
                   label={`Mais ações de ${processo.nomeEmpresa}`}
                   itens={[

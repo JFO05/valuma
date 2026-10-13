@@ -31,7 +31,8 @@ export interface ResultadoNumericoParaContexto {
 
 const client = new Anthropic();
 
-const MODEL = "claude-opus-5";
+/** Exportado para lib/ai/chat-assistente.ts usar o mesmo modelo. */
+export const MODEL = "claude-opus-5";
 
 /**
  * Schema da resposta esperada da IA — usado com output_config.format
@@ -205,7 +206,8 @@ function montarSecaoResultadoCalculado({
   ].join("\n");
 }
 
-function montarSecaoPerfil(dados: DadosProcesso): string {
+/** Exportada para reuso em lib/ai/chat-assistente.ts (mesmo texto de contexto, sem duplicar a lógica). */
+export function montarSecaoPerfil(dados: DadosProcesso): string {
   const { perfil } = dados;
 
   const socios =
@@ -228,7 +230,8 @@ function montarSecaoPerfil(dados: DadosProcesso): string {
   ].join("\n");
 }
 
-function montarSecaoFinanceiro(dados: DadosProcesso): string {
+/** Exportada para reuso em lib/ai/chat-assistente.ts. */
+export function montarSecaoFinanceiro(dados: DadosProcesso): string {
   const { financeiro } = dados;
   const anos = anosDreComDados(financeiro.dre);
 
@@ -280,7 +283,8 @@ function montarSecaoFinanceiro(dados: DadosProcesso): string {
   ].join("\n");
 }
 
-function montarSecaoOperacao(dados: DadosProcesso): string {
+/** Exportada para reuso em lib/ai/chat-assistente.ts. */
+export function montarSecaoOperacao(dados: DadosProcesso): string {
   const { operacao } = dados;
 
   const cargos =
@@ -322,7 +326,8 @@ function montarSecaoOperacao(dados: DadosProcesso): string {
   ].join("\n");
 }
 
-function montarSecaoMercado(dados: DadosProcesso): string {
+/** Exportada para reuso em lib/ai/chat-assistente.ts. */
+export function montarSecaoMercado(dados: DadosProcesso): string {
   const { mercado } = dados;
 
   const concorrentes =

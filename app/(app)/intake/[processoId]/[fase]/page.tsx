@@ -4,11 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { FASE_LABELS, isFaseIntake, type FaseIntake } from "@/lib/intake/fases";
 import { consolidarDadosProcesso } from "@/lib/valuation/consolidar";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
-import { calcularProntidao } from "@/lib/prontidao/checklist";
 import { PROPOSITO_ETAPA } from "@/lib/content/propositos-etapas";
 import { IntakeStepper } from "@/components/intake/intake-stepper";
 import { IntakeSidebar } from "@/components/intake/intake-sidebar";
-import { PendenciasEtapa } from "@/components/intake/pendencias-etapa";
+import { MotorForm } from "@/components/intake/motor-form";
 import { PerfilForm } from "@/components/intake/perfil-form";
 import { FinanceiroForm } from "@/components/intake/financeiro-form";
 import { OperacaoForm } from "@/components/intake/operacao-form";
@@ -66,15 +65,6 @@ export default async function IntakeFasePage({
   const pendencias = verificarCamposObrigatorios(dadosProcesso);
   const fasesComPendencia = new Set(pendencias.map((p) => p.fase));
 
-  // Pendências do Índice de Prontidão (Fase 2) que pertencem só a esta etapa
-  // — não confundir com `pendencias` acima (DEF-01, lista mínima pro botão
-  // "Gerar Resultado", bem menor). Revisão de UX fora da numeração das
-  // Fases 1-6: indica exatamente quais campos ainda faltam, com link direto.
-  const prontidao = calcularProntidao(dadosProcesso);
-  const pendenciasDestaEtapa = Object.values(prontidao.dimensoes)
-    .flatMap((dimensao) => dimensao.pendencias)
-    .filter((pendencia) => pendencia.fase === fase);
-
   return (
     <div className="flex w-full flex-1 gap-16">
       {/* A sidebar fica junto da borda esquerda da tela (não centralizada
@@ -104,8 +94,6 @@ export default async function IntakeFasePage({
           <p className="mt-1 text-sm text-zinc-500">{PROPOSITO_ETAPA[fase]}</p>
         </div>
 
-        <PendenciasEtapa pendencias={pendenciasDestaEtapa} />
-
         {/* Mobile/tablet: a sidebar acima fica oculta (`hidden lg:flex`); o
             stepper horizontal compacto que já existia continua servindo essa
             navegação em telas estreitas — solução mais simples pedida na
@@ -118,6 +106,10 @@ export default async function IntakeFasePage({
             fasesComPendencia={fasesComPendencia}
           />
         </div>
+
+        {fase === "motor" && (
+          <MotorForm processoId={processoId} dadosIniciais={dadosAtual} />
+        )}
 
         {fase === "perfil" && (
           <PerfilForm processoId={processoId} dadosIniciais={dadosAtual} />

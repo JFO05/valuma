@@ -48,6 +48,42 @@ export const PESO_VALUATION_EBITDA = 0.5;
 export const PESO_VALUATION_DCF = 0.3;
 export const PESO_VALUATION_PATRIMONIAL = 0.2;
 
+/**
+ * Motor de Análise (V2 — prompt de evolução, seções 2/3/11): forma da
+ * configuração que `calcularValuation` aceita. Vive aqui (não em
+ * lib/valuation/motor.ts) para evitar import circular — motor.ts importa
+ * estes tipos e `CONFIGURACAO_ESSENCIAL` daqui, nunca o contrário.
+ */
+export interface MetodosAtivos {
+  multiplos: boolean;
+  dcf: boolean;
+  patrimonial: boolean;
+}
+
+/** Pesos e taxas são frações (0 a 1) — ex.: 0.5 = 50%, 0.03 = 3% a.a. A conversão para percentual acontece só na UI. */
+export interface ConfiguracaoMotor {
+  metodosAtivos: MetodosAtivos;
+  pesos: { multiplos: number; dcf: number; patrimonial: number };
+  multiploEbitda: number;
+  crescimentoAnual: number;
+  taxaDesconto: number;
+  horizonteAnos: number;
+}
+
+/** Configuração do Motor Essencial — idêntica, número por número, ao que o motor v1 sempre calculou. */
+export const CONFIGURACAO_ESSENCIAL: ConfiguracaoMotor = {
+  metodosAtivos: { multiplos: true, dcf: true, patrimonial: true },
+  pesos: {
+    multiplos: PESO_VALUATION_EBITDA,
+    dcf: PESO_VALUATION_DCF,
+    patrimonial: PESO_VALUATION_PATRIMONIAL,
+  },
+  multiploEbitda: MULTIPLO_EBITDA_PADRAO,
+  crescimentoAnual: TAXA_CRESCIMENTO_PROJECAO,
+  taxaDesconto: TAXA_DESCONTO_PADRAO,
+  horizonteAnos: HORIZONTE_PROJECAO_ANOS,
+};
+
 export interface ResultadoCalculoValuation {
   /** Enterprise Value bruto por múltiplo de EBITDA, antes do ajuste de dívida líquida — só para explicabilidade (RG-52). `null` quando o método não é aplicável. */
   evMultiplos: number | null;
@@ -71,7 +107,21 @@ export interface ResultadoCalculoValuation {
   ebitdaBaseUtilizado: number | null;
 }
 
-export function calcularValuation(dados: DadosProcesso): ResultadoCalculoValuation {
+/**
+ * V2 (Motor de Análise — prompt de evolução, seções 2/3/11): aceita uma
+ * configuração opcional de motor; sem ela, usa CONFIGURACAO_ESSENCIAL (os
+ * mesmos números fixos do v1 — 4,0x, 50/30/20, 3%/15%/5 anos). Importante:
+ * tornar os parâmetros configuráveis NÃO elimina as condições de
+ * aplicabilidade dos métodos (EBITDA > 0 para Múltiplos/DCF, Patrimônio
+ * Líquido > 0 para Patrimonial) — um método desativado no Motor Configurável
+ * simplesmente não entra no consolidado; um método ativado mas inaplicável
+ * ao cenário também não entra (nunca é "forçado"), e isso é reportado à
+ * interface como um estado legítimo do domínio, não um erro técnico.
+ */
+export function calcularValuation(
+  dados: DadosProcesso,
+  config: ConfiguracaoMotor = CONFIGURACAO_ESSENCIAL,
+): ResultadoCalculoValuation {
   const anosComDados = anosDreComDados(dados.financeiro.dre);
   const anoBase = anosComDados.at(-1) ?? null;
   const ebitdaBase =
@@ -86,11 +136,23 @@ export function calcularValuation(dados: DadosProcesso): ResultadoCalculoValuati
 
   // RG-20: EBITDA-base ausente ou ≤ 0 torna Múltiplos e DCF não aplicáveis —
   // nenhum dos dois é sequer calculado neste caso (não produzimos um valor
-  // negativo/zero "literal" para depois esconder).
+  // negativo/zero "literal" para depois esconder). Independente de o método
+  // estar ativado no Motor Configurável ou não.
   const ebitdaAplicavel = ebitdaBase !== null && ebitdaBase > 0;
+  const { multiplos: multiplosAtivo, dcf: dcfAtivo, patrimonial: patrimonialAtivo } =
+    config.metodosAtivos;
 
-  const evMultiplos = ebitdaAplicavel ? ebitdaBase * MULTIPLO_EBITDA_PADRAO : null;
-  const evDcf = ebitdaAplicavel ? calcularDcfSimplificado(ebitdaBase) : null;
+  const evMultiplos =
+    multiplosAtivo && ebitdaAplicavel ? ebitdaBase! * config.multiploEbitda : null;
+  const evDcf =
+    dcfAtivo && ebitdaAplicavel
+      ? calcularDcfSimplificado(
+          ebitdaBase!,
+          config.crescimentoAnual,
+          config.taxaDesconto,
+          config.horizonteAnos,
+        )
+      : null;
 
   const valuationEbitda = evMultiplos !== null ? evMultiplos - dividaLiquida : null;
   const valuationDcf = evDcf !== null ? evDcf - dividaLiquida : null;
@@ -101,21 +163,30 @@ export function calcularValuation(dados: DadosProcesso): ResultadoCalculoValuati
     : null;
   // RG-21: Patrimônio Líquido ausente ou ≤ 0 torna o método não aplicável ao
   // consolidado — mas o valor informado permanece em valuationPatrimonial.
-  const patrimonialAplicavel = valuationPatrimonial !== null && valuationPatrimonial > 0;
+  const patrimonialAplicavelBase = valuationPatrimonial !== null && valuationPatrimonial > 0;
 
   const aplicabilidade: AplicabilidadeMetodos = {
-    multiplos: ebitdaAplicavel,
-    dcf: ebitdaAplicavel,
-    patrimonial: patrimonialAplicavel,
-    consolidadoDisponivel: ebitdaAplicavel && patrimonialAplicavel,
+    multiplos: multiplosAtivo && ebitdaAplicavel,
+    dcf: dcfAtivo && ebitdaAplicavel,
+    patrimonial: patrimonialAtivo && patrimonialAplicavelBase,
+    // Consolidado existe quando TODO método ATIVADO é aplicável (um método
+    // nunca ativado simplesmente não entra na conta) e pelo menos 1 método
+    // está ativado — equivalente exato da regra v1 quando os 3 estão
+    // sempre ativos (Motor Essencial).
+    consolidadoDisponivel:
+      (!multiplosAtivo || ebitdaAplicavel) &&
+      (!dcfAtivo || ebitdaAplicavel) &&
+      (!patrimonialAtivo || patrimonialAplicavelBase) &&
+      (multiplosAtivo || dcfAtivo || patrimonialAtivo),
   };
 
-  // RG-22/RG-24: sem renormalização — o consolidado só existe com os 3
-  // métodos aplicáveis simultaneamente.
+  // RG-22/RG-24: sem renormalização — o consolidado soma só os métodos
+  // ativados, cada um com o peso configurado (que para o Motor Configurável
+  // já foi validado para somar 100% entre os ativos antes da geração).
   const valuationFinal = aplicabilidade.consolidadoDisponivel
-    ? valuationEbitda! * PESO_VALUATION_EBITDA +
-      valuationDcf! * PESO_VALUATION_DCF +
-      valuationPatrimonial! * PESO_VALUATION_PATRIMONIAL
+    ? (multiplosAtivo ? valuationEbitda! * config.pesos.multiplos : 0) +
+      (dcfAtivo ? valuationDcf! * config.pesos.dcf : 0) +
+      (patrimonialAtivo ? valuationPatrimonial! * config.pesos.patrimonial : 0)
     : null;
 
   return {
@@ -134,13 +205,18 @@ export function calcularValuation(dados: DadosProcesso): ResultadoCalculoValuati
   };
 }
 
-function calcularDcfSimplificado(ebitdaBase: number): number {
+function calcularDcfSimplificado(
+  ebitdaBase: number,
+  crescimentoAnual: number,
+  taxaDesconto: number,
+  horizonteAnos: number,
+): number {
   let valorPresente = 0;
   let fluxo = ebitdaBase;
 
-  for (let ano = 1; ano <= HORIZONTE_PROJECAO_ANOS; ano++) {
-    fluxo *= 1 + TAXA_CRESCIMENTO_PROJECAO;
-    valorPresente += fluxo / Math.pow(1 + TAXA_DESCONTO_PADRAO, ano);
+  for (let ano = 1; ano <= horizonteAnos; ano++) {
+    fluxo *= 1 + crescimentoAnual;
+    valorPresente += fluxo / Math.pow(1 + taxaDesconto, ano);
   }
 
   return valorPresente;

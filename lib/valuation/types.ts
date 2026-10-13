@@ -3,6 +3,8 @@ import type { DreAnoFormValues, FinanceiroFormValues } from "@/lib/intake/schema
 import type { OperacaoFormValues } from "@/lib/intake/schema-operacao";
 import type { MercadoFormValues } from "@/lib/intake/schema-mercado";
 import type { DocumentosData } from "@/lib/intake/schema-documentos";
+import type { MotorFormValues } from "@/lib/intake/schema-motor";
+import type { MotorSnapshot } from "@/lib/valuation/motor";
 
 /**
  * Módulo 100% puro (sem I/O) — deliberado, para que calcular.ts e os
@@ -13,6 +15,8 @@ import type { DocumentosData } from "@/lib/intake/schema-documentos";
  */
 export interface DadosProcesso {
   processoId: string;
+  /** Configuração do Motor de Análise (V2) — dado de CONFIGURAÇÃO, não de negócio; calcular.ts recebe isso convertido, como parâmetro explícito separado, nunca lido daqui dentro. */
+  motor: MotorFormValues;
   perfil: PerfilFormValues;
   financeiro: FinanceiroFormValues;
   operacao: OperacaoFormValues;
@@ -47,8 +51,14 @@ export function anosDreComDados(dre: DreAnoFormValues[]): DreAnoFormValues[] {
     .sort((a, b) => a.ano - b.ano);
 }
 
-/** Identificador explícito da versão da regra de negócio que gerou um resultado (RG-47). */
-export const MODEL_VERSION = "valu_ma_v1" as const;
+/**
+ * Identificador explícito da versão da regra de negócio que gerou um
+ * resultado (RG-47 da v1.0). Resultados já persistidos com "valu_ma_v1"
+ * NÃO são migrados para este valor — continuam identificados como v1
+ * (histórico preservado, RG-63/RG-64 da v2.0); só resultados novos, gerados
+ * a partir deste ponto, recebem "valu_ma_v2".
+ */
+export const MODEL_VERSION = "valu_ma_v2" as const;
 
 /**
  * Valores intermediários do motor de valuation (RG-52 — explicabilidade),
@@ -128,6 +138,15 @@ export interface ResultadoValuation {
    */
   modeloVersao: string | null;
   aplicabilidade: AplicabilidadeMetodos;
+  /**
+   * Snapshot do Motor de Análise usado para gerar ESTE resultado (V2,
+   * seção 4 do prompt de evolução) — independente da fase "motor" atual do
+   * intake (RG-47-like: nunca recalculado a partir da configuração atual).
+   * `null` = resultado gerado antes do Motor de Análise existir — tratar
+   * como Motor Essencial (ver lib/valuation/motor.ts::MOTOR_SNAPSHOT_LEGADO),
+   * nunca como erro nem reinterpretado silenciosamente.
+   */
+  motorSnapshot: MotorSnapshot | null;
   /** Índice de Prontidão geral (média das 4 dimensões abaixo). */
   scoreTotal: number;
   scoreFinanceiro: number;

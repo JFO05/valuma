@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import { PerfilMenu } from "@/components/perfil-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -28,12 +29,9 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="print:hidden flex items-center justify-between border-b border-zinc-900/5 px-6 py-3 dark:border-white/5">
-        <Link
-          href="/dashboard"
-          className="text-lg font-semibold tracking-tight text-ink dark:text-zinc-50"
-        >
-          ValuM&amp;A
+      <header className="print:hidden sticky top-0 z-30 flex items-center justify-between border-b border-zinc-900/5 bg-[#fafaf9]/90 px-6 py-3 backdrop-blur-md dark:border-white/5 dark:bg-[#0a0a0a]/90">
+        <Link href="/dashboard" aria-label="ValuM&amp;A">
+          <BrandLogo />
         </Link>
 
         <div className="flex items-center gap-2">

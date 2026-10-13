@@ -94,6 +94,122 @@ body {
 }
 
 /*
+ * Redesign v1 (UX/UI/identidade) — fundação visual compartilhada entre
+ * landing e app. Mantém a paleta grafite+dourado já estabelecida; aqui só
+ * ficam os utilitários novos reaproveitados em várias telas, pra não
+ * duplicar a mesma declaração de gradiente/seção escura em cada componente.
+ */
+
+/* Mancha de luz ambiente (glow), usada atrás de títulos de seção — tradução
+   do "bloom" de cor que a referência visual usa atrás de headlines, só que
+   em tons dourado/grafite em vez de verde. Puro CSS (radial-gradient),
+   sem imagem. */
+.glow-accent {
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 16%, transparent),
+    transparent 70%
+  );
+}
+
+:root.dark .glow-accent {
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    transparent 70%
+  );
+}
+
+/* Manchas ambientes espalhadas atrás das seções da landing (entre o Hero e
+   o CTA final, que já têm a própria arte de fundo) — alternam âmbar/azul e
+   usam blur bem generoso (ver uso de `blur-3xl` onde são posicionadas) para
+   que a transição de uma seção pra outra nunca pareça um corte reto de cor,
+   mesmo com cada seção tendo fundo transparente. */
+.glow-blob-amber {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    transparent 70%
+  );
+}
+
+:root.dark .glow-blob-amber {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 28%, transparent),
+    transparent 70%
+  );
+}
+
+.glow-blob-blue {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #2563eb 18%, transparent),
+    transparent 70%
+  );
+}
+
+:root.dark .glow-blob-blue {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, #3b82f6 26%, transparent),
+    transparent 70%
+  );
+}
+
+/* Seções "escuras" da landing (hero, bloco de declaração) — usa a própria
+   tinta da marca como fundo (não o --background escuro padrão), pra ficar
+   sempre escura mesmo no tema claro: é uma escolha de composição da seção,
+   não do tema do usuário. */
+.section-ink {
+  background: #0b1222;
+  color: #f4f6fb;
+}
+
+:root.dark .section-ink {
+  background: #05070d;
+}
+
+/* Textura sutil de grade, usada só dentro de .section-ink, para dar
+   profundidade sem precisar de imagem/foto (a referência usa fotografia
+   dramática; aqui traduzimos "profundidade" para um padrão geométrico leve,
+   coerente com o domínio financeiro/estrutura de dados do produto).
+   Vive num ::before próprio (não no elemento em si) porque `mask-image`
+   recorta a renderização inteira do elemento em que é aplicado — se fosse
+   direto em `.texture-grid`, a máscara que deveria só apagar a grade nas
+   bordas apagava, junto, o texto e os botões reais da seção. */
+.texture-grid {
+  position: relative;
+}
+
+.texture-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 85%);
+}
+
+/* Efeito leve de aberração cromática em headlines de destaque — usado com
+   moderação (só no título do hero), inspirado no tratamento tipográfico da
+   referência visual, implementado só com text-shadow (sem canvas/WebGL). */
+.text-chroma {
+  text-shadow:
+    -1px 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent),
+    1px 0 0 color-mix(in srgb, #3fb8c4 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-chroma {
+    text-shadow: none;
+  }
+}
+
+/*
  * Fase 5 (PDF do resultado, D4: window.print() sem dependência nova). A
  * correção principal do tema escuro na impressão é em JS, não aqui:
  * components/theme-impressao-clara.tsx remove de verdade a classe `.dark`

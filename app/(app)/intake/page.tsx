@@ -37,5 +37,7 @@ export default async function NewIntakePage() {
     );
   }
 
-  redirect(`/intake/${processo.id}/perfil`);
+  // V2: Motor de Análise é a primeira etapa — o usuário escolhe como o
+  // ValuM&A vai calcular antes de preencher qualquer dado da empresa.
+  redirect(`/intake/${processo.id}/motor`);
 }

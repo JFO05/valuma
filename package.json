@@ -10,13 +10,15 @@
     "valuation:test": "tsx scripts/testar-valuation.ts",
     "prontidao:test": "tsx scripts/testar-prontidao.ts",
     "regras:test": "tsx scripts/testar-regras-negocio.ts",
-    "test": "npm run valuation:test && npm run prontidao:test && npm run regras:test"
+    "motor:test": "tsx scripts/testar-motor.ts",
+    "test": "npm run valuation:test && npm run prontidao:test && npm run regras:test && npm run motor:test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
+    "exceljs": "^4.4.0",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",

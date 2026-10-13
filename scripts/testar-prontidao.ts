@@ -13,6 +13,7 @@ import {
   calcularProntidao,
   type DimensaoProntidao,
 } from "../lib/prontidao/checklist";
+import { motorDefaultValues } from "../lib/intake/schema-motor";
 import { perfilDefaultValues } from "../lib/intake/schema-perfil";
 import {
   financeiroDefaultValues,
@@ -46,6 +47,7 @@ function assertIgual(atual: unknown, esperado: unknown, mensagem: string) {
 function processoVazio(): DadosProcesso {
   return {
     processoId: "teste-vazio",
+    motor: { ...motorDefaultValues },
     perfil: { ...perfilDefaultValues },
     financeiro: {
       ...financeiroDefaultValues,
@@ -61,6 +63,7 @@ function processoVazio(): DadosProcesso {
 function processoCompleto(): DadosProcesso {
   return {
     processoId: "teste-completo",
+    motor: { ...motorDefaultValues },
     perfil: { ...perfilDefaultValues, razaoSocial: "Empresa Teste Ltda.", setor: "Comércio" },
     financeiro: {
       dre: [2025, 2024, 2023].map((ano) => ({
@@ -170,7 +173,7 @@ const semEbitda = processoCompleto();
 semEbitda.financeiro.dre[0] = { ...semEbitda.financeiro.dre[0], ebitda: undefined };
 const resultadoSemEbitda = calcularProntidao(semEbitda);
 assert(
-  resultadoSemEbitda.dimensoes.financeiro.pendencias.some((p) => p.id === "financeiro.dre.0.ebitda"),
+  resultadoSemEbitda.dimensoes.financeiro.pendencias.some((p) => p.id === "financeiro.dre.slot0.ebitda"),
   "EBITDA do ano mais recente não informado aparece como pendência",
 );
 

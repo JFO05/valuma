@@ -1,4 +1,5 @@
 import { MODEL_VERSION, type AplicabilidadeMetodos, type ResultadoValuation } from "./types";
+import type { MotorSnapshot } from "./motor";
 
 /** Formato de uma linha de public.resultados, como o Postgres devolve. */
 interface ResultadoRow {
@@ -13,6 +14,8 @@ interface ResultadoRow {
   score_juridico: number;
   analise_ia: ResultadoValuation["analiseIA"];
   modelo_versao: string | null;
+  /** V2 — null em resultados gerados antes do Motor de Análise existir. */
+  motor_snapshot: MotorSnapshot | null;
 }
 
 /**
@@ -47,6 +50,11 @@ export function mapRowParaResultadoValuation(
     valuationDcf: row.valuation_dcf,
     valuationPatrimonial: row.valuation_patrimonial,
     modeloVersao: row.modelo_versao,
+    // V2: `null` = resultado gerado antes do Motor de Análise existir — o
+    // consumidor decide como tratar isso (mesmo padrão de `modeloVersao`
+    // acima); ver lib/valuation/motor.ts::MOTOR_SNAPSHOT_LEGADO para o
+    // fallback já pronto, usado por components/resultado/como-chegamos.tsx.
+    motorSnapshot: row.motor_snapshot,
     aplicabilidade: derivarAplicabilidade(row),
     scoreTotal: row.score_total,
     scoreFinanceiro: row.score_financeiro,

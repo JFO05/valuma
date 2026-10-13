@@ -1,17 +1,20 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 import { createClient } from "@/lib/supabase/server";
 import { mapRowParaResultadoValuation, ehResultadoLegado } from "@/lib/valuation/resultados";
 import type { ResultadoValuation } from "@/lib/valuation/types";
 import { consolidarDadosProcesso } from "@/lib/valuation/consolidar";
 import { verificarCamposObrigatorios } from "@/lib/valuation/campos-obrigatorios";
 import { calcularProntidao } from "@/lib/prontidao/checklist";
+import { Reveal } from "@/components/ui/reveal";
 import { ValuationDestaque } from "@/components/resultado/valuation-destaque";
 import { ScoreGauge } from "@/components/resultado/score-gauge";
 import { ScoreBreakdown } from "@/components/resultado/score-breakdown";
 import { PendenciasProntidao } from "@/components/resultado/pendencias-prontidao";
 import { ComoChegamos } from "@/components/resultado/como-chegamos";
 import { AnaliseIaCards } from "@/components/resultado/analise-ia-cards";
+import { ChatAssistente } from "@/components/resultado/chat-assistente";
 import { ResultadoVazio } from "@/components/resultado/resultado-vazio";
 import { GerarResultadoButton } from "@/components/resultado/gerar-resultado-button";
 import { PendenciasObrigatorias } from "@/components/resultado/pendencias-obrigatorias";
@@ -38,9 +41,6 @@ export default async function ResultadoPage({
     redirect("/login");
   }
 
-  // Mesmo padrão de app/intake/[processoId]/[fase]/page.tsx: a RLS só
-  // devolve o processo se ele existir E pertencer ao usuário logado, então
-  // um 404 aqui cobre os dois casos sem distinguir.
   const { data: processo, error: processoError } = await supabase
     .from("processos")
     .select("id, nome_empresa")
@@ -51,11 +51,6 @@ export default async function ResultadoPage({
     notFound();
   }
 
-  // Busca real em public.resultados — colunas snake_case, convertidas para
-  // o formato ResultadoValuation (camelCase) pelo mesmo mapper que a rota
-  // de geração usa (lib/valuation/resultados.ts), então os dois caminhos
-  // (gerar agora vs. reabrir uma página já gerada) produzem o mesmo shape.
-  // RLS garante que só vem linha se o processo for do usuário logado.
   const { data: resultadoRow } = await supabase
     .from("resultados")
     .select("*")
@@ -66,22 +61,10 @@ export default async function ResultadoPage({
     ? mapRowParaResultadoValuation(resultadoRow)
     : null;
 
-  // Calculado sempre (não só quando falta resultado): dados obrigatórios
-  // podem ter sido apagados do intake DEPOIS de um resultado já existir, e
-  // "Recalcular" precisa ficar bloqueado nesse caso também (RG-40).
   const dadosProcesso = await consolidarDadosProcesso(processoId);
   const pendencias = verificarCamposObrigatorios(dadosProcesso);
-
-  // O Índice de Prontidão exibido em "O que ainda falta"/"Como chegamos" usa
-  // o intake ATUAL, não o valor congelado no último resultado salvo — o
-  // usuário pode ter editado o intake depois da última geração (mesmo
-  // raciocínio do gate de campos mínimos).
   const prontidaoAoVivo = calcularProntidao(dadosProcesso);
 
-  // RG-46: "resultado desatualizado" compara o momento da última geração
-  // (resultados.atualizado_em — NUNCA processos.updated_at, que é
-  // atualizado pela própria geração do resultado, o que criaria um falso
-  // "sempre atualizado") com o momento da última alteração do intake.
   let resultadoDesatualizado = false;
   if (resultadoRow) {
     const { data: intakeRows } = await supabase
@@ -102,90 +85,126 @@ export default async function ResultadoPage({
   const resultadoLegado = resultado !== null && ehResultadoLegado(resultado);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 p-8">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-6 sm:p-8">
+      {/* Só aparece no PDF/impressão — na tela, a marca já vem do header do
+          AppShell, que é print:hidden (ver RG-50: o PDF é só a reimpressão
+          desta mesma tela, sem motor de cálculo próprio). */}
+      <div className="hidden print:block">
+        <BrandLogo />
+      </div>
+
+      <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-1">
+        <Link href="/dashboard" className="text-sm text-zinc-500 underline hover:text-ink dark:hover:text-zinc-200">
+          ← Voltar para o Dashboard
+        </Link>
+        <Link
+          href={`/intake/${processoId}/perfil`}
+          className="text-sm text-zinc-500 underline hover:text-ink dark:hover:text-zinc-200"
+        >
+          ← Editar dados do intake
+        </Link>
+      </div>
+
       <div>
-        <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Link
-            href="/dashboard"
-            className="text-sm text-zinc-500 underline"
-          >
-            ← Voltar para o Dashboard
-          </Link>
-          <Link
-            href={`/intake/${processoId}/perfil`}
-            className="text-sm text-zinc-500 underline"
-          >
-            ← Editar dados do intake
-          </Link>
-        </div>
-        <p className="mt-2 text-sm text-zinc-500">{processo.nome_empresa}</p>
-        <h1 className="text-2xl font-semibold">Resultado do Valuation</h1>
+        <p className="text-sm text-zinc-500">{processo.nome_empresa}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink dark:text-zinc-50">
+          Resultado do Valuation
+        </h1>
       </div>
 
       {!resultado ? (
-        <ResultadoVazio
-          processoId={processoId}
-          nomeEmpresa={processo.nome_empresa}
-          pendencias={pendencias}
-        />
+        <Reveal>
+          <ResultadoVazio
+            processoId={processoId}
+            nomeEmpresa={processo.nome_empresa}
+            pendencias={pendencias}
+          />
+        </Reveal>
       ) : (
-        <>
+        <div className="flex flex-col gap-8">
           {resultadoLegado && <ResultadoLegadoBanner processoId={processoId} />}
           {!resultadoLegado && resultadoDesatualizado && (
             <ResultadoDesatualizadoBanner processoId={processoId} />
           )}
 
           {/* 1. Estimativa preliminar de Equity Value */}
-          <ValuationDestaque valor={resultado.valuationFinal} />
-
-          {/* 2. Índice de Prontidão — nota geral e as 4 dimensões */}
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">
-              Índice de Prontidão Informacional para M&amp;A
-            </h2>
-            <ScoreGauge indiceGeral={resultado.scoreTotal} />
-            <ScoreBreakdown resultado={resultado} />
-          </section>
-
-          {/* 3. Pendências e alertas */}
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">O que ainda falta</h2>
-            <PendenciasProntidao
-              processoId={processoId}
-              prontidao={prontidaoAoVivo}
+          <Reveal>
+            <ValuationDestaque
+              valor={resultado.valuationFinal}
+              motorTipo={resultado.motorSnapshot?.tipo}
             />
-          </section>
+          </Reveal>
+
+          {/* 2. Índice de Prontidão + 3. Pendências e alertas (mesmo card:
+              Prontidão e o que falta para melhorá-la são a mesma conversa) */}
+          <Reveal delayMs={60}>
+            <section className="flex flex-col gap-6 rounded-2xl border border-zinc-900/5 bg-white p-6 dark:border-white/5 dark:bg-zinc-900">
+              <div>
+                <h2 className="text-lg font-semibold text-ink dark:text-zinc-50">
+                  Índice de Prontidão Informacional para M&amp;A
+                </h2>
+                <div className="mt-4">
+                  <ScoreGauge indiceGeral={resultado.scoreTotal} />
+                </div>
+                <div className="mt-5">
+                  <ScoreBreakdown resultado={resultado} />
+                </div>
+              </div>
+
+              <div className="border-t border-zinc-100 pt-6 dark:border-zinc-800">
+                <h3 className="mb-3 text-sm font-semibold text-ink dark:text-zinc-50">
+                  O que ainda falta
+                </h3>
+                <PendenciasProntidao processoId={processoId} prontidao={prontidaoAoVivo} />
+              </div>
+            </section>
+          </Reveal>
 
           {/* 4. Como chegamos a este resultado? (recolhível) */}
-          <ComoChegamos resultado={resultado} prontidao={prontidaoAoVivo} />
+          <Reveal delayMs={100}>
+            <ComoChegamos resultado={resultado} prontidao={prontidaoAoVivo} />
+          </Reveal>
 
           {/* 5. Análise qualitativa */}
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">Análise de IA</h2>
-            <AnaliseIaCards analiseIA={resultado.analiseIA} processoId={processoId} />
-          </section>
+          <Reveal delayMs={140}>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-ink dark:text-zinc-50">
+                Análise Estratégica
+              </h2>
+              <AnaliseIaCards analiseIA={resultado.analiseIA} processoId={processoId} />
+            </section>
+          </Reveal>
+
+          {/* Chat do assistente — não faz parte da numeração oficial das
+              seções (RG-53); fica entre a análise de IA e as próximas
+              etapas, e não aparece no PDF (não faz sentido estático). */}
+          <Reveal delayMs={160} className="print:hidden">
+            <ChatAssistente processoId={processoId} />
+          </Reveal>
 
           {/* 6. Próximas etapas profissionais */}
-          <ProximasEtapas />
+          <Reveal delayMs={180}>
+            <ProximasEtapas />
+          </Reveal>
 
           <div className="print:hidden flex justify-center">
             <BaixarPdfButton />
           </div>
 
-          {/* 7. Disclaimer / informações complementares */}
-          <p className="text-xs text-zinc-500">{DISCLAIMER_OFICIAL}</p>
+          {/* 7. Disclaimer / informações complementares — visível, sem
+              aparência de alerta vermelho assustador (item 26.7). */}
+          <p className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-xs leading-relaxed text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+            {DISCLAIMER_OFICIAL}
+          </p>
 
-          <div className="print:hidden flex flex-col items-center gap-2 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <div className="print:hidden flex flex-col items-center gap-2 border-t border-zinc-100 pt-6 dark:border-zinc-800">
             {pendencias.length > 0 ? (
               <>
                 <p className="text-sm text-zinc-500">
                   Algumas informações obrigatórias foram removidas do intake
                   desde a última geração:
                 </p>
-                <PendenciasObrigatorias
-                  processoId={processoId}
-                  pendencias={pendencias}
-                />
+                <PendenciasObrigatorias processoId={processoId} pendencias={pendencias} />
               </>
             ) : (
               !resultadoDesatualizado &&
@@ -203,7 +222,7 @@ export default async function ResultadoPage({
               )
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

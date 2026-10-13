@@ -8,14 +8,12 @@ import { useFreshDadosIniciais } from "@/lib/hooks/useFreshDadosIniciais";
 import { useConfirm } from "@/components/confirm-dialog";
 import { AjudaPopover } from "@/components/ui/ajuda-popover";
 import { AutosaveStatusIndicator } from "@/components/intake/autosave-status";
-import { VoltarDashboardButton } from "@/components/intake/voltar-dashboard-button";
-import { DocumentoListItem } from "@/components/intake/documento-list-item";
-import {
-  DocumentoUploadProgress,
-  type UploadEmAndamento,
-} from "@/components/intake/documento-upload-progress";
+import { IntakeNavButtons } from "@/components/intake/intake-nav-buttons";
+import { CategoriaDocumentoCard } from "@/components/intake/categoria-documento-card";
+import type { UploadEmAndamento } from "@/components/intake/documento-upload-progress";
 import {
   BUCKET_DOCUMENTOS,
+  CATEGORIAS_DOCUMENTO,
   calcularHashArquivo,
   encontrarDuplicata,
   parseDocumentosData,
@@ -31,6 +29,10 @@ import type { AutosaveStatus } from "@/lib/hooks/useAutosave";
  * digitação aqui, é evento de upload/remoção). Chama saveIntakeData
  * diretamente — o mesmo mecanismo de salvamento das outras etapas — logo
  * depois de cada upload/remoção bem-sucedida.
+ *
+ * Cada uma das 6 categorias fixas (RG-35) tem seu próprio card com seu
+ * próprio upload — a categoria é definida no momento do envio (qual card o
+ * cliente usou), não escolhida depois num seletor por arquivo.
  */
 export function DocumentosForm({
   processoId,
@@ -80,7 +82,7 @@ export function DocumentosForm({
     return saveQueueRef.current;
   }
 
-  async function handleFiles(fileList: FileList | null) {
+  async function handleFiles(fileList: FileList | null, categoria: CategoriaDocumento) {
     if (!fileList || fileList.length === 0) return;
     setErroGeral(null);
 
@@ -112,14 +114,14 @@ export function DocumentosForm({
       if (erroValidacao) {
         setUploads((prev) => [
           ...prev,
-          { id: uploadId, nome: file.name, progresso: 0, status: "erro", erro: erroValidacao },
+          { id: uploadId, nome: file.name, progresso: 0, status: "erro", erro: erroValidacao, categoria },
         ]);
         continue;
       }
 
       setUploads((prev) => [
         ...prev,
-        { id: uploadId, nome: file.name, progresso: 0, status: "enviando" },
+        { id: uploadId, nome: file.name, progresso: 0, status: "enviando", categoria },
       ]);
 
       const path = `${processoId}/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
@@ -139,14 +141,65 @@ export function DocumentosForm({
           },
         });
 
-        // Hash de conteúdo (RG-36/1.4): usado só para detectar duplicidade ao
-        // categorizar o documento (ver handleCategoriaChange abaixo). Melhor
-        // esforço — crypto.subtle exige contexto seguro (https/localhost);
-        // sem ele, o documento simplesmente não participa da checagem.
+        // Hash de conteúdo (RG-36/1.4): a categoria já é conhecida no momento
+        // do upload (é o card em que o cliente clicou), então a checagem de
+        // duplicidade acontece aqui mesmo, antes de persistir — não precisa
+        // mais esperar uma escolha de categoria posterior.
         const hash =
           typeof crypto !== "undefined" && crypto.subtle
             ? await calcularHashArquivo(file).catch(() => undefined)
             : undefined;
+
+        if (hash) {
+          const duplicata = encontrarDuplicata(arquivosRef.current, { hash, categoria });
+
+          if (duplicata) {
+            // Sem um terceiro botão disponível no diálogo de confirmação, a
+            // escolha de 3 vias (substituir / manter complementar / cancelar)
+            // é feita em duas perguntas sequenciais, cada uma com só 2 opções.
+            const manterOsDois = await confirm({
+              titulo: "Documento duplicado nesta categoria",
+              mensagem: `"${duplicata.nome}" já está nesta categoria e parece ser o mesmo arquivo. Manter os dois como complementares? (não conta como duas categorias diferentes na Prontidão)`,
+              confirmarLabel: "Manter os dois",
+            });
+
+            if (!manterOsDois) {
+              const substituir = await confirm({
+                titulo: "Substituir documento existente?",
+                mensagem: `Deseja substituir "${duplicata.nome}" por este novo documento?`,
+                confirmarLabel: "Substituir",
+              });
+
+              if (!substituir) {
+                // Cancelar: descarta o arquivo recém-enviado (já está no
+                // Storage, mas nunca foi persistido no jsonb) para não deixar
+                // um objeto órfão.
+                await supabase.storage.from(BUCKET_DOCUMENTOS).remove([path]);
+                setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+                continue;
+              }
+
+              setRemovendoPath(duplicata.path);
+              await supabase.storage.from(BUCKET_DOCUMENTOS).remove([duplicata.path]);
+              setRemovendoPath(null);
+
+              const semODuplicado = arquivosRef.current.filter((a) => a.path !== duplicata.path);
+              const novoDocumento: DocumentoArquivo = {
+                nome: file.name,
+                path,
+                tamanho: file.size,
+                tipo: file.type,
+                enviadoEm: new Date().toISOString(),
+                hash,
+                categoria,
+              };
+              await persistir([...semODuplicado, novoDocumento]);
+              setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+              continue;
+            }
+            // "Manter os dois": segue para persistir normalmente.
+          }
+        }
 
         const novoDocumento: DocumentoArquivo = {
           nome: file.name,
@@ -155,6 +208,7 @@ export function DocumentosForm({
           tipo: file.type,
           enviadoEm: new Date().toISOString(),
           hash,
+          categoria,
         };
 
         await persistir([...arquivosRef.current, novoDocumento]);
@@ -174,53 +228,6 @@ export function DocumentosForm({
         );
       }
     }
-  }
-
-  async function handleCategoriaChange(documento: DocumentoArquivo, categoria: CategoriaDocumento) {
-    // RG-36: duplicidade é avaliada por hash + categoria — só faz sentido
-    // checar no momento em que a categoria é escolhida (é quando o par
-    // hash+categoria passa a existir de fato).
-    if (documento.hash) {
-      const outros = arquivosRef.current.filter((a) => a.path !== documento.path);
-      const duplicata = encontrarDuplicata(outros, { hash: documento.hash, categoria });
-
-      if (duplicata) {
-        // Sem um terceiro botão disponível no diálogo de confirmação, a
-        // escolha de 3 vias (substituir / manter complementar / cancelar)
-        // é feita em duas perguntas sequenciais, cada uma com só 2 opções.
-        const manterOsDois = await confirm({
-          titulo: "Documento duplicado nesta categoria",
-          mensagem: `"${duplicata.nome}" já está nesta categoria e parece ser o mesmo arquivo. Manter os dois como complementares? (não conta como duas categorias diferentes na Prontidão)`,
-          confirmarLabel: "Manter os dois",
-        });
-
-        if (!manterOsDois) {
-          const substituir = await confirm({
-            titulo: "Substituir documento existente?",
-            mensagem: `Deseja substituir "${duplicata.nome}" por este novo documento?`,
-            confirmarLabel: "Substituir",
-          });
-
-          if (!substituir) return; // cancelar: não atribui a categoria
-
-          setRemovendoPath(duplicata.path);
-          const supabase = createClient();
-          await supabase.storage.from(BUCKET_DOCUMENTOS).remove([duplicata.path]);
-          setRemovendoPath(null);
-
-          const semODuplicado = arquivosRef.current.filter((a) => a.path !== duplicata.path);
-          await persistir(
-            semODuplicado.map((a) => (a.path === documento.path ? { ...a, categoria } : a)),
-          );
-          return;
-        }
-        // "Manter os dois": segue para atribuir a categoria normalmente.
-      }
-    }
-
-    await persistir(
-      arquivosRef.current.map((a) => (a.path === documento.path ? { ...a, categoria } : a)),
-    );
   }
 
   async function handlePeriodoChange(documento: DocumentoArquivo, periodoReferencia: string) {
@@ -257,7 +264,7 @@ export function DocumentosForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8">
       {dialog}
 
       {erroGeral && (
@@ -266,59 +273,46 @@ export function DocumentosForm({
         </p>
       )}
 
-      <div id="documentos.arquivos" className="flex items-start gap-1">
-        <label className="flex w-fit cursor-pointer flex-col gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-sm dark:border-zinc-700">
-          <span className="font-medium">Clique para anexar arquivos</span>
-          <span className="text-xs text-zinc-500">
-            PDF, DOC/DOCX, XLS/XLSX, JPG ou PNG — até 20 MB por arquivo
-          </span>
-          <input
-            type="file"
-            multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-            className="hidden"
-            onChange={(e) => {
-              handleFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
-        </label>
-        <AjudaPopover campoId="documentos" />
-      </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-1">
+          <h2 className="text-sm font-semibold text-ink dark:text-zinc-50">
+            Categorias documentais
+          </h2>
+          <AjudaPopover campoId="documentos" />
+        </div>
+        <p className="text-xs text-zinc-500">
+          PDF, DOC/DOCX, XLS/XLSX, JPG ou PNG — até 20 MB por arquivo. Anexe
+          direto na categoria correta.
+        </p>
 
-      {uploads.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {uploads.map((upload) => (
-            <DocumentoUploadProgress
-              key={upload.id}
-              upload={upload}
-              onDispensar={() =>
-                setUploads((prev) => prev.filter((u) => u.id !== upload.id))
+        <div id="documentos.arquivos" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {CATEGORIAS_DOCUMENTO.map((categoria) => (
+            <CategoriaDocumentoCard
+              key={categoria}
+              categoria={categoria}
+              arquivos={arquivos.filter((a) => a.categoria === categoria)}
+              uploads={uploads.filter((u) => u.categoria === categoria)}
+              removendoPath={removendoPath}
+              onFiles={(fileList) => handleFiles(fileList, categoria)}
+              onRemover={handleRemover}
+              onPeriodoChange={handlePeriodoChange}
+              onDispensarUpload={(uploadId) =>
+                setUploads((prev) => prev.filter((u) => u.id !== uploadId))
               }
             />
           ))}
-        </ul>
-      )}
-
-      {arquivos.length === 0 ? (
-        <p className="text-sm text-zinc-500">Nenhum arquivo enviado ainda.</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {arquivos.map((documento) => (
-            <DocumentoListItem
-              key={documento.path}
-              documento={documento}
-              removendo={removendoPath === documento.path}
-              onRemover={() => handleRemover(documento)}
-              onCategoriaChange={(categoria) => handleCategoriaChange(documento, categoria)}
-              onPeriodoChange={(periodo) => handlePeriodoChange(documento, periodo)}
-            />
-          ))}
-        </ul>
-      )}
+        </div>
+      </div>
 
       <AutosaveStatusIndicator status={status} />
-      <VoltarDashboardButton status={status} />
+      {/* Documentos não tem campos mínimos (RG-43) e é a última etapa — o
+          botão "Próximo" vira "Ir para o Resultado". */}
+      <IntakeNavButtons
+        processoId={processoId}
+        faseAtual="documentos"
+        status={status}
+        podeAvancar
+      />
     </div>
   );
 }

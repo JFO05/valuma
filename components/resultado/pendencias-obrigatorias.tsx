@@ -3,11 +3,12 @@ import { FASE_LABELS } from "@/lib/intake/fases";
 import type { PendenciaObrigatoria } from "@/lib/valuation/campos-obrigatorios";
 
 /**
- * Lista exatamente o que falta para liberar "Gerar Resultado" (DEF-01),
- * cada item linkando para a etapa E o campo específico (âncora "#slug" —
- * os inputs correspondentes têm esse `id` nos formulários). Reaproveitado
- * tanto quando ainda não há resultado (ResultadoVazio) quanto quando já
- * existe um resultado mas dados obrigatórios foram apagados depois.
+ * Lista exatamente o que falta para liberar "Gerar Resultado" (campos
+ * mínimos, RG-40), cada item linkando para a etapa E o campo específico.
+ * Reaproveitado tanto quando ainda não há resultado (ResultadoVazio) quanto
+ * quando já existe um resultado mas dados obrigatórios foram apagados
+ * depois. Tratamento mais forte (âmbar sólido) que um alerta comum — é
+ * efetivamente bloqueante — mas nunca vermelho/erro.
  */
 export function PendenciasObrigatorias({
   processoId,
@@ -17,7 +18,7 @@ export function PendenciasObrigatorias({
   pendencias: PendenciaObrigatoria[];
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-900 dark:bg-amber-950">
+    <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left dark:border-amber-900 dark:bg-amber-950">
       <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
         Ainda falta preencher {pendencias.length === 1 ? "1 informação" : `${pendencias.length} informações`}{" "}
         obrigatória{pendencias.length === 1 ? "" : "s"} para gerar o resultado:

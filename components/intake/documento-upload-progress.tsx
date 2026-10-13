@@ -1,9 +1,13 @@
+import type { CategoriaDocumento } from "@/lib/intake/schema-documentos";
+
 export interface UploadEmAndamento {
   id: string;
   nome: string;
   progresso: number;
   status: "enviando" | "erro";
   erro?: string;
+  /** Categoria em que este upload foi iniciado — cada card de categoria mostra só os seus. */
+  categoria: CategoriaDocumento;
 }
 
 export function DocumentoUploadProgress({

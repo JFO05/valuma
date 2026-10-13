@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { parseMotorData } from "@/lib/intake/schema-motor";
 import { parsePerfilData } from "@/lib/intake/schema-perfil";
 import { parseFinanceiroData } from "@/lib/intake/schema-financeiro";
 import { parseOperacaoData } from "@/lib/intake/schema-operacao";
@@ -42,6 +43,7 @@ export async function consolidarDadosProcesso(
 
   return {
     processoId,
+    motor: parseMotorData(porFase.get("motor") ?? {}),
     perfil: parsePerfilData(porFase.get("perfil") ?? {}),
     financeiro: parseFinanceiroData(porFase.get("financeiro") ?? {}),
     operacao: parseOperacaoData(porFase.get("operacao") ?? {}),

@@ -27,6 +27,7 @@ import {
   TAXA_DESCONTO_PADRAO,
 } from "../lib/valuation/calcular";
 import { verificarCamposObrigatorios } from "../lib/valuation/campos-obrigatorios";
+import { motorDefaultValues } from "../lib/intake/schema-motor";
 import { perfilDefaultValues } from "../lib/intake/schema-perfil";
 import { financeiroDefaultValues, criarDreAnoVazio, dividaVazia } from "../lib/intake/schema-financeiro";
 import { operacaoDefaultValues } from "../lib/intake/schema-operacao";
@@ -61,6 +62,7 @@ function assertProximo(atual: number, esperado: number, mensagem: string, tolera
 function base(): DadosProcesso {
   return {
     processoId: "teste-regras-negocio",
+    motor: { ...motorDefaultValues },
     perfil: { ...perfilDefaultValues, razaoSocial: "Empresa Teste Ltda.", setor: "Comércio" },
     financeiro: {
       ...financeiroDefaultValues,
@@ -195,7 +197,10 @@ console.log("\n=== Campos mínimos (RG-40/RG-41) — zero informado passa, ausê
 
   const semEbitda = base();
   semEbitda.financeiro.dre[2] = { ...semEbitda.financeiro.dre[2], ebitda: undefined, receitaBruta: 0 };
-  assert(!semPendencia(semEbitda, "financeiro.dre.0.ebitda"), "24. EBITDA ausente (nenhum ano com dados) falha no gate");
+  // V2 (anos dinâmicos): sem nenhum ano-base identificável, a âncora da
+  // pendência aponta pro fieldset do DRE como um todo ("financeiro.dre"),
+  // não mais pra um índice fixo — não existe mais "o índice 0" garantido.
+  assert(!semPendencia(semEbitda, "financeiro.dre"), "24. EBITDA ausente (nenhum ano com dados) falha no gate");
 
   const plZero = base();
   plZero.financeiro.balanco.patrimonioLiquido = 0;
@@ -231,6 +236,7 @@ console.log("\n=== Versionamento do modelo (RG-47, DIV-02) — independente da I
       valuationDcf: null,
       valuationPatrimonial: null,
       modeloVersao: null,
+      motorSnapshot: null,
       aplicabilidade: { multiplos: false, dcf: false, patrimonial: false, consolidadoDisponivel: false },
       scoreTotal: 0,
       scoreFinanceiro: 0,
@@ -242,16 +248,28 @@ console.log("\n=== Versionamento do modelo (RG-47, DIV-02) — independente da I
     };
   }
 
-  assertIgual(MODEL_VERSION, "valu_ma_v1", "modelo_versao. MODEL_VERSION é exatamente 'valu_ma_v1'");
+  assertIgual(MODEL_VERSION, "valu_ma_v2", "modelo_versao. MODEL_VERSION é exatamente 'valu_ma_v2' (fechamento V2)");
 
   const atual = resultadoFicticio({ modeloVersao: MODEL_VERSION });
-  assertIgual(ehResultadoLegado(atual), false, "modelo_versao = valu_ma_v1 não é legado");
+  assertIgual(ehResultadoLegado(atual), false, "modelo_versao = valu_ma_v2 (atual) não é legado");
 
   const semVersao = resultadoFicticio({ modeloVersao: null });
   assertIgual(ehResultadoLegado(semVersao), true, "resultado antigo sem versão (modeloVersao = null) é legado");
 
   const versaoAntiga = resultadoFicticio({ modeloVersao: "prontidao_v1" });
-  assertIgual(ehResultadoLegado(versaoAntiga), true, "versão antiga (diferente de valu_ma_v1) é legada");
+  assertIgual(ehResultadoLegado(versaoAntiga), true, "versão antiga (diferente da atual) é legada");
+
+  // Fechamento V2: resultados v1 antigos (persistidos antes do Motor de
+  // Análise existir) não são migrados — continuam com modeloVersao
+  // "valu_ma_v1" no banco. Como isso agora é "diferente da versão atual",
+  // passam a ser corretamente identificados como legado (RG-47 da v1.0) —
+  // consequência esperada e documentada do avanço de versão, não um bug.
+  const v1Historico = resultadoFicticio({ modeloVersao: "valu_ma_v1" });
+  assertIgual(
+    ehResultadoLegado(v1Historico),
+    true,
+    "resultado v1 histórico (modeloVersao = 'valu_ma_v1') é identificado como legado após o avanço para v2",
+  );
 
   // DIV-02: falha/ausência da IA nunca pode afetar a identificação de
   // versão — ehResultadoLegado não lê `analiseIA` em nenhum momento, só
