@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { mapAuthError } from "@/lib/supabase/auth-errors";
+import { PremiumCard } from "@/components/ui/premium-card";
+import { Reveal } from "@/components/ui/reveal";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -41,63 +43,66 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-zinc-200 p-6 dark:border-zinc-800"
-      >
-        <h1 className="text-xl font-semibold">Criar conta</h1>
+      <Reveal className="w-full max-w-sm">
+        <PremiumCard>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-8">
+            <h1 className="text-xl font-semibold text-ink dark:text-zinc-50">
+              Criar conta
+            </h1>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Nome completo
-          <input
-            type="text"
-            required
-            value={nomeCompleto}
-            onChange={(e) => setNomeCompleto(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Nome completo
+              <input
+                type="text"
+                required
+                value={nomeCompleto}
+                onChange={(e) => setNomeCompleto(e.target.value)}
+                className="rounded-xl border border-zinc-200 px-3.5 py-2.5 transition-colors focus:border-ink focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-100"
+              />
+            </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          E-mail
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
+            <label className="flex flex-col gap-1 text-sm">
+              E-mail
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-xl border border-zinc-200 px-3.5 py-2.5 transition-colors focus:border-ink focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-100"
+              />
+            </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Senha
-          <input
-            type="password"
-            required
-            minLength={6}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Senha
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="rounded-xl border border-zinc-200 px-3.5 py-2.5 transition-colors focus:border-ink focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-zinc-100"
+              />
+            </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-        >
-          {loading ? "Criando conta..." : "Criar conta"}
-        </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-1 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] disabled:opacity-50 dark:bg-white dark:text-black"
+            >
+              {loading ? "Criando conta..." : "Criar conta"}
+            </button>
 
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Já tem conta?{" "}
-          <Link href="/login" className="font-medium underline">
-            Entrar
-          </Link>
-        </p>
-      </form>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Já tem conta?{" "}
+              <Link href="/login" className="font-medium underline">
+                Entrar
+              </Link>
+            </p>
+          </form>
+        </PremiumCard>
+      </Reveal>
     </div>
   );
 }
