@@ -33,7 +33,13 @@ export default async function Home() {
             bg-zinc-50/bg-zinc-950 próprios) e dividem este único pano de
             manchas âmbar/azul desfocadas — é o que faz a transição de uma
             seção pra outra não parecer um corte reto de cor. */}
-        <div className="relative overflow-x-hidden">
+        {/* overflow-x-clip (não overflow-x-hidden): "hidden" vira scroll
+            container e o CSS promove overflow-y de "visible" para "auto"
+            automaticamente quando só o eixo X é restringido — como as
+            manchas abaixo passam da altura deste bloco, isso criava uma
+            barra de rolagem vertical própria, aninhada dentro da página.
+            "clip" só corta o conteúdo sem nunca virar scroll container. */}
+        <div className="relative overflow-x-clip">
           {/* Manchas estáticas (sem parallax de scroll — o listener de
               scroll + transform a cada frame causava engasgo visível na
               rolagem; blur-3xl já é pesado o bastante sem isso). */}
