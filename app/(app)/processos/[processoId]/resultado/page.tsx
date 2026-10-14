@@ -93,13 +93,16 @@ export default async function ResultadoPage({
         <BrandLogo />
       </div>
 
-      <div className="print:hidden flex flex-wrap items-center gap-x-4 gap-y-1">
-        <Link href="/dashboard" className="text-sm text-zinc-500 underline hover:text-ink dark:hover:text-zinc-200">
+      <div className="print:hidden flex flex-wrap items-center gap-3">
+        <Link
+          href="/dashboard"
+          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-accent/50 hover:text-accent dark:border-zinc-700 dark:text-zinc-300"
+        >
           ← Voltar para o Dashboard
         </Link>
         <Link
           href={`/intake/${processoId}/perfil`}
-          className="text-sm text-zinc-500 underline hover:text-ink dark:hover:text-zinc-200"
+          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-accent/50 hover:text-accent dark:border-zinc-700 dark:text-zinc-300"
         >
           ← Editar dados do intake
         </Link>

@@ -25,7 +25,7 @@ export function IntakeSidebar({
     <nav className="hidden w-60 shrink-0 flex-col gap-6 lg:flex">
       <Link
         href="/dashboard"
-        className="flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-ink dark:hover:text-zinc-200"
+        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-accent/50 hover:text-accent dark:border-zinc-700 dark:text-zinc-300"
       >
         <span aria-hidden="true">←</span> Dashboard
       </Link>
