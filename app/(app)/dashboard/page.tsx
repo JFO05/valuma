@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -121,20 +122,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col gap-12 px-6 py-16">
-      {/* Vídeo de fundo contínuo, atrás de toda a tela do painel (fixed,
-          não confinado a este container) — autoplay silencioso em loop,
-          com um véu escuro por cima pra manter o texto legível em qualquer
-          trecho do vídeo. */}
-      <video
-        aria-hidden="true"
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="fixed inset-0 -z-20 h-full w-full object-cover"
-      >
-        <source src="/brand/dashboard-bg.mp4" type="video/mp4" />
-      </video>
+      {/* Fundo estático do painel: a mesma arte de marca (clara/escura) usada
+          no hero da landing page (components/landing/hero.tsx), em vez do
+          vídeo anterior — alterna com o tema via `dark:`, com um véu por cima
+          pra manter o texto legível em qualquer trecho da imagem. O `fill`
+          do next/image exige um ancestral posicionado para preencher; por
+          isso cada imagem fica dentro do seu próprio wrapper `fixed`, em vez
+          de `fixed` ir direto na própria <Image> (que o next/image já
+          posiciona como `absolute` via estilo inline, com especificidade
+          maior que a classe Tailwind). */}
+      <div aria-hidden="true" className="fixed inset-0 -z-20 dark:hidden">
+        <Image src="/brand/hero-light.png" alt="" fill sizes="100vw" priority className="object-cover" />
+      </div>
+      <div aria-hidden="true" className="fixed inset-0 -z-20 hidden dark:block">
+        <Image src="/brand/hero-dark.png" alt="" fill sizes="100vw" priority className="object-cover" />
+      </div>
       <div aria-hidden="true" className="fixed inset-0 -z-20 bg-[#fafaf9]/75 dark:bg-[#0a0a0a]/55" />
 
       <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -10,6 +10,16 @@ import { useRouter } from "next/navigation";
  * render do Server Component da página (app/processos/[processoId]/resultado/page.tsx),
  * que busca o resultado recém-salvo em public.resultados — não precisamos
  * guardar o resultado no estado do client component.
+ *
+ * router.refresh() é assíncrono: ele dispara a releitura do Server Component,
+ * mas não devolve uma Promise que só resolve quando o novo HTML já chegou.
+ * Por isso fica dentro de um useTransition — `isPending` continua `true`
+ * até o React de fato COMMITAR a árvore nova (ou seja, até a tela do
+ * resultado estar pronta pra aparecer). Sem isso, soltar o estado de
+ * "carregando" logo após chamar refresh() cria uma janela em que o botão
+ * "Gerar Resultado" reaparece por uma fração de segundo antes do resultado
+ * chegar — e um clique nessa janela parecia "não ter feito nada" até o
+ * usuário clicar de novo.
  */
 export function GerarResultadoButton({
   processoId,
@@ -21,11 +31,13 @@ export function GerarResultadoButton({
   variante?: "primario" | "secundario";
 }) {
   const router = useRouter();
-  const [carregando, setCarregando] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const carregando = enviando || isPending;
 
   async function handleClick() {
-    setCarregando(true);
+    setEnviando(true);
     setErro(null);
 
     try {
@@ -40,15 +52,17 @@ export function GerarResultadoButton({
         setErro(
           body?.error ?? "Não foi possível gerar o resultado. Tente novamente.",
         );
-        setCarregando(false);
+        setEnviando(false);
         return;
       }
 
-      router.refresh();
-      setCarregando(false);
+      setEnviando(false);
+      startTransition(() => {
+        router.refresh();
+      });
     } catch {
       setErro("Falha de conexão. Tente novamente.");
-      setCarregando(false);
+      setEnviando(false);
     }
   }
 
