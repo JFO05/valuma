@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Reveal } from "@/components/ui/reveal";
+import { PillCta } from "@/components/ui/pill-cta";
 
 /**
  * Mesmo par de imagens claro/escuro do Hero, repetido aqui num tom bem mais
@@ -33,15 +33,7 @@ export function CtaFinal() {
         <h2 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl dark:text-zinc-50">
           Comece organizando o próximo passo da sua empresa.
         </h2>
-        <Link
-          href="/signup"
-          className="group flex items-center gap-3 rounded-full bg-ink py-1.5 pl-6 pr-1.5 text-sm font-medium text-white transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] dark:bg-white dark:text-black"
-        >
-          Iniciar avaliação
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 dark:bg-black/10">
-            ↗
-          </span>
-        </Link>
+        <PillCta href="/signup">Iniciar avaliação</PillCta>
       </Reveal>
     </section>
   );

@@ -1,10 +1,33 @@
 import { Reveal } from "@/components/ui/reveal";
+import { PillCta } from "@/components/ui/pill-cta";
 
 const FLUXO = [
   "ValuM&A",
   "Validação contábil/financeira",
   "Validação jurídica",
   "Due diligence / negociação",
+];
+
+/**
+ * Os 2 blocos de entrada abaixo do fluxo (padrão "Como começar" da Mynr,
+ * item 14 do relatório de referência — duas opções, não uma) não são duas
+ * rotas diferentes: os dois caminhos começam no mesmo /signup (sem
+ * formulário/backend novo, regra 3 do pedido original). A diferença real
+ * é o que a pessoa faz DEPOIS de entrar — digitar os dados manualmente ou
+ * usar a importação de Excel que já existe na etapa Financeiro
+ * (components/intake/importar-excel-financeiro.tsx).
+ */
+const ENTRADAS = [
+  {
+    titulo: "Começar do zero",
+    descricao:
+      "Fluxo guiado em 6 etapas, com salvamento automático — preencha aos poucos, sem precisar ter tudo pronto de uma vez.",
+  },
+  {
+    titulo: "Já tenho os dados organizados",
+    descricao:
+      "Na etapa Financeiro, importe DRE, balanço e dívidas direto de uma planilha Excel no formato esperado, em vez de digitar campo a campo.",
+  },
 ];
 
 export function SecaoProfissionais() {
@@ -41,6 +64,35 @@ export function SecaoProfissionais() {
               )}
             </div>
           ))}
+        </div>
+      </Reveal>
+
+      <Reveal delayMs={200}>
+        <div className="mt-16 flex flex-col gap-4">
+          <h3 className="text-center text-sm font-medium uppercase tracking-[0.2em] text-accent">
+            Como começar
+          </h3>
+
+          <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {ENTRADAS.map((entrada, indice) => (
+              <div
+                key={entrada.titulo}
+                className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-black/[0.03] p-6 dark:border-white/10 dark:bg-white/5"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-xs font-semibold text-accent">
+                  {String(indice + 1).padStart(2, "0")}
+                </span>
+                <h4 className="text-sm font-semibold text-ink dark:text-zinc-50">
+                  {entrada.titulo}
+                </h4>
+                <p className="text-xs text-zinc-500">{entrada.descricao}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex justify-center">
+            <PillCta href="/signup">Iniciar avaliação</PillCta>
+          </div>
         </div>
       </Reveal>
     </section>

@@ -1,3 +1,5 @@
+import { AnimatedBarFill } from "@/components/ui/animated-bar-fill";
+
 const DIMENSOES_DEMO = [
   { label: "Financeiro", valor: 82 },
   { label: "Operacional", valor: 68 },
@@ -25,7 +27,10 @@ export function HeroMockup() {
             <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
               Resultado — exemplo
             </span>
-            <span className="flex h-2 w-2 rounded-full bg-accent" />
+            <span
+              aria-hidden="true"
+              className="pulse-live flex h-2 w-2 rounded-full bg-accent"
+            />
           </div>
 
           <div className="mt-5 flex flex-col gap-1">
@@ -43,7 +48,7 @@ export function HeroMockup() {
               <span className="text-sm font-semibold text-white">75/100</span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[75%] rounded-full bg-accent" />
+              <AnimatedBarFill valor={75} className="bg-accent" />
             </div>
           </div>
 
@@ -54,10 +59,7 @@ export function HeroMockup() {
                   {dimensao.label}
                 </span>
                 <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-white/60"
-                    style={{ width: `${dimensao.valor}%` }}
-                  />
+                  <AnimatedBarFill valor={dimensao.valor} className="bg-white/60" />
                 </div>
               </div>
             ))}

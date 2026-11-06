@@ -1,15 +1,40 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { Hero } from "@/components/landing/hero";
+import { SecaoDemo } from "@/components/landing/secao-demo";
 import { SecaoProblema } from "@/components/landing/secao-problema";
 import { SecaoComoFunciona } from "@/components/landing/secao-como-funciona";
 import { SecaoPilares } from "@/components/landing/secao-pilares";
+import { SecaoResultado } from "@/components/landing/secao-resultado";
 import { SecaoExplicabilidade } from "@/components/landing/secao-explicabilidade";
 import { SecaoProntidao } from "@/components/landing/secao-prontidao";
+import { SecaoParaQuemE } from "@/components/landing/secao-para-quem-e";
+import { SecaoSeguranca } from "@/components/landing/secao-seguranca";
 import { SecaoProfissionais } from "@/components/landing/secao-profissionais";
+import { SecaoFaq } from "@/components/landing/secao-faq";
 import { CtaFinal } from "@/components/landing/cta-final";
+import { LandingFooter } from "@/components/landing/landing-footer";
+
+// Sobrescreve o title/description genéricos de app/layout.tsx (achado da
+// Etapa 1, item D — a própria Mynr tem um <title> fraco; aqui corrigido em
+// vez de repetido) só para a rota pública. metadataBase usa a URL real de
+// produção (confirmada nesta mesma sessão), não um domínio inventado.
+export const metadata: Metadata = {
+  metadataBase: new URL("https://valuma.vercel.app"),
+  title: "ValuM&A — Valuation e Prontidão para M&A",
+  description:
+    "Organize as informações da sua empresa, meça a prontidão para uma análise de M&A e receba uma estimativa preliminar de valor, com o cálculo explicado passo a passo.",
+  openGraph: {
+    title: "ValuM&A — Valuation e Prontidão para M&A",
+    description:
+      "Organize as informações da sua empresa, meça a prontidão para uma análise de M&A e receba uma estimativa preliminar de valor.",
+    type: "website",
+    locale: "pt_BR",
+    url: "/",
+  },
+};
 
 export default async function Home() {
   const supabase = await createClient();
@@ -52,26 +77,23 @@ export default async function Home() {
             <div className="glow-blob-blue absolute -right-32 top-[96%] h-[26rem] w-[26rem] blur-3xl" />
           </div>
 
+          <SecaoDemo />
           <SecaoProblema />
           <SecaoComoFunciona />
           <SecaoPilares />
+          <SecaoResultado />
           <SecaoExplicabilidade />
           <SecaoProntidao />
+          <SecaoParaQuemE />
+          <SecaoSeguranca />
           <SecaoProfissionais />
+          <SecaoFaq />
         </div>
 
         <CtaFinal />
       </main>
 
-      <footer className="border-t border-zinc-900/5 px-6 py-8 text-center text-xs text-zinc-500 dark:border-white/5">
-        <p>
-          ValuM&amp;A — plataforma de preparação e análise preliminar para
-          M&amp;A.{" "}
-          <Link href="/login" className="underline">
-            Entrar
-          </Link>
-        </p>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

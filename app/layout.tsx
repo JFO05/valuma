@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       // O script logo abaixo adiciona a classe `dark` a esta tag ANTES do
       // React hidratar (de propósito, pra não piscar o tema errado) — sem

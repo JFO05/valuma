@@ -226,6 +226,31 @@ body {
  * visibilidade — o que aparece ou não no PDF — fica nas classes
  * `print:hidden` já usadas nos componentes da tela de resultado):
  */
+/*
+ * Indicador "ao vivo" do mockup de resultado no hero (item 1 do plano da
+ * landing, docs/plano-landing-valuma.md) — pulso lento num único elemento,
+ * nunca animação de entrada na seção inteira (isso já foi removido de
+ * propósito, ver components/ui/reveal.tsx). Desligado quando o usuário
+ * pede menos movimento, igual ao scroll-behavior acima.
+ */
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-live {
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+}
+
 @media print {
   :root {
     --background: #ffffff;

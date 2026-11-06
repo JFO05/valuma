@@ -42,6 +42,13 @@ export function SecaoExplicabilidade() {
                 </li>
               ))}
             </ul>
+
+            <p className="max-w-xl text-sm text-white/50">
+              O mesmo princípio vale para o Índice de Prontidão: ele mede o
+              nível de disponibilidade, estruturação e validade básica das
+              informações — nunca a qualidade real da empresa, nem a
+              veracidade do que foi informado.
+            </p>
           </div>
         </div>
       </Reveal>

@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/reveal";
+import { AnimatedBarFill } from "@/components/ui/animated-bar-fill";
 
 const DIMENSOES = [
   { label: "Financeiro", valor: 82 },
@@ -14,7 +15,7 @@ const DIMENSOES = [
  */
 export function SecaoProntidao() {
   return (
-    <section id="para-quem-e" className="py-24 sm:py-32">
+    <section id="indice-prontidao" className="py-24 sm:py-32">
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-12 px-6 sm:flex-row sm:items-center sm:gap-16">
         <Reveal className="flex max-w-md flex-col gap-4">
           <span className="text-xs font-medium uppercase tracking-[0.2em] text-accent">
@@ -39,10 +40,7 @@ export function SecaoProntidao() {
                   {dimensao.label}
                 </span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <div
-                    className="h-full rounded-full bg-ink dark:bg-accent"
-                    style={{ width: `${dimensao.valor}%` }}
-                  />
+                  <AnimatedBarFill valor={dimensao.valor} className="bg-ink dark:bg-accent" />
                 </div>
                 <span className="w-9 shrink-0 text-right text-sm font-medium tabular-nums text-ink dark:text-zinc-50">
                   {dimensao.valor}%
